@@ -1,14 +1,9 @@
 from loguru import logger
-from fastapi import Depends, Request, Response, APIRouter, UploadFile, File, HTTPException
-from typing import List
-import time
-import os
-from uuid import UUID
+from fastapi import Depends, Request, APIRouter, UploadFile, File, HTTPException
 import traceback
 
 from epagneul.api.core.neo4j import get_database
-from epagneul.common import settings
-from epagneul.models.folders import Folder
+from epagneul.models.folders import Folder, Stats, MachineStat, UserStat
 from epagneul.models.files import File
 from epagneul.models.graph import Edge, Node, EdgeData, NodeData
 from epagneul.artifacts.evtx import parse_evtx
@@ -24,17 +19,24 @@ def get_folders(db = Depends(get_database)):
 @router.get("/{folder_name}")
 def get_folder(folder_name: str, db = Depends(get_database)):
     print(f"get folder {folder_name}")
-    nodes, edges = db.get_graph(folder=folder_name)
-
-
     folder = db.get_folder(folder_name)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    folder.nodes = nodes
-    folder.edges = edges
+    folder.nodes, folder.edges = db.get_graph(folder=folder_name)
 
-    print(folder.dict())
+    users_stats = []
+    machines_stats = []
+    for node in folder.nodes:
+        print(node.data.category)
+        if node.data.category == "user":
+            users_stats.append(UserStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
+        elif node.data.category == "machine":
+            machines_stats.append(MachineStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
+
+    folder.stats = Stats(machines_stats=machines_stats, users_stats=users_stats)
+    #identifier=node.data.label, pagerank=node.data.pagerank) for node in nodes if not node.data.is_compound
+
     return folder
 
 

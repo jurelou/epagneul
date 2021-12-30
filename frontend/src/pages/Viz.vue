@@ -1,7 +1,7 @@
 <template>
   <q-page >
     <div class="q-pa-md q-gutter-sm">
-      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" label="Summary" @click="infobox = true"/>
+      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" :label="'Summary for ' + folder.name" @click="infobox = true"/>
     </div>
     <q-inner-loading
         :showing="isLoading"
@@ -267,6 +267,7 @@ function filterMachine (val, update) {
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
 watch(() => folder, (folder) => {
+  console.log(folder.value)
   let v = folder.value
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value)

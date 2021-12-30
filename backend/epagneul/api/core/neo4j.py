@@ -33,7 +33,7 @@ class DataBase:
 
             compound_id = f"compound-{node['algo_lpa']}"
             if compound_id not in nodes:
-                nodes[compound_id] = Node(data=NodeData(id=compound_id, bg_color="grey", bg_opacity=0.33))
+                nodes[compound_id] = Node(data=NodeData(id=compound_id, category="compound", bg_color="grey", bg_opacity=0.33))
             new_node.data.parent = compound_id
             nodes[node["identifier"]] = new_node
 
@@ -113,7 +113,8 @@ class DataBase:
             "tip": f"Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
             "border_color": "#e76f51" if u.is_admin else "#e9c46a",
             "bg_opacity": 0.0,
-            "shape": "ellipse"
+            "shape": "ellipse",
+            "category": "user"
         } for u in store.users.values()]
         
         machines = [{
@@ -122,7 +123,8 @@ class DataBase:
             "tip": f"Hostname: {m.hostname}<br>IP: {m.ip}",
             "border_color": "#2a9d8f",
             "bg_opacity": 0.0,
-            "shape": "rectangle"
+            "shape": "rectangle",
+            "category": "machine"
         } for m in store.machines.values()]
 
         events = [{

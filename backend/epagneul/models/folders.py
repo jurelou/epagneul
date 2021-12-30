@@ -21,6 +21,18 @@ class Folder(BaseModel):
             DateTime: lambda date: datetime.strftime(datetime(date.year, date.month, date.day, date.hour, date.minute, int(date.second), int(date.second * 1000000 % 1000000), tzinfo=date.tzinfo), "%e/%m/%Y %H:%M:%S")
         }
 
+class MachineStat(BaseModel):
+    identifier: str
+    pagerank: float
+
+class UserStat(BaseModel):
+    identifier: str
+    pagerank: float
+
+class Stats(BaseModel):
+    machines_stats: List[MachineStat] = []
+    users_stats: List[UserStat] = []
+
 class FolderInDB(BaseModel):
     name: str
     summary: str
@@ -29,6 +41,7 @@ class FolderInDB(BaseModel):
     files: List[File] = []
     nodes: List[Node] = []
     edges: List[Edge] = []
+    stats: Stats = None
 
     class Config:
         arbitrary_types_allowed = True

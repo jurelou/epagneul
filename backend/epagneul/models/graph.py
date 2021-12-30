@@ -15,7 +15,11 @@ class Edge(BaseModel):
 
 
 class NodeData(BaseModel):
+    id: str = Field(default_factory=lambda : uuid4().hex)
+    category: str
+
     label: str = ""
+
     bg_opacity : float = 1.0
     bg_color: str = "black"
     border_color: str = "black"
@@ -24,7 +28,7 @@ class NodeData(BaseModel):
     tip: str = ""
     width: int = 50
     height: int = 50
-    id: str = Field(default_factory=lambda : uuid4().hex)
+    algo_pagerank: float = 0.15
 
 class Node(BaseModel):
     data: NodeData
