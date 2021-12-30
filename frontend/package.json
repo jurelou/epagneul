@@ -1,0 +1,59 @@
+{
+  "name": "epagneul",
+  "version": "0.0.1",
+  "description": "Windows event viewer",
+  "productName": "epagneul",
+  "author": "ljk",
+  "private": true,
+  "scripts": {
+    "lint": "eslint --ext .js,.vue ./",
+    "test": "echo \"No test specified\" && exit 0"
+  },
+  "dependencies": {
+    "@quasar/extras": "^1.0.0",
+    "axios": "^0.21.1",
+    "core-js": "^3.6.5",
+    "cytoscape": "^3.20.0",
+    "cytoscape-cose-bilkent": "^4.1.0",
+    "cytoscape-cxtmenu": "^3.4.0",
+    "cytoscape-dagre": "^2.3.2",
+    "cytoscape-fcose": "^2.1.0",
+    "cytoscape-klay": "^3.1.4",
+    "cytoscape-layout-utilities": "^1.1.1",
+    "cytoscape-popper": "^2.0.0",
+    "cytoscape-view-utilities": "^6.0.0",
+    "pinia": "^2.0.6",
+    "quasar": "^2.0.0",
+    "tippy.js": "^6.3.7",
+    "vue": "^3.2.25",
+    "vue-cytoscape": "^1.0.8",
+    "vue-i18n": "^9.0.0",
+    "vue-query": "^1.14.0",
+    "vuex": "^4.0.1",
+    "web-worker": "^1.2.0"
+  },
+  "devDependencies": {
+    "@babel/eslint-parser": "^7.13.14",
+    "@quasar/app": "^3.0.0",
+    "eslint": "^7.14.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-vue": "^7.0.0",
+    "eslint-webpack-plugin": "^2.4.0"
+  },
+  "browserslist": [
+    "last 10 Chrome versions",
+    "last 10 Firefox versions",
+    "last 4 Edge versions",
+    "last 7 Safari versions",
+    "last 8 Android versions",
+    "last 8 ChromeAndroid versions",
+    "last 8 FirefoxAndroid versions",
+    "last 10 iOS versions",
+    "last 5 Opera versions"
+  ],
+  "engines": {
+    "node": ">= 12.22.1",
+    "npm": ">= 6.13.4",
+    "yarn": ">= 1.21.1"
+  }
+}

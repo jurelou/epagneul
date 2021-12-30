@@ -1,0 +1,22 @@
+---
+default:
+    evidences_folder: /tmp/evidences
+    api:
+        app_name: epagneul
+        debug: true
+        url_prefix: /api
+
+    log:
+        level: DEBUG
+        file: /tmp/toto.loga
+
+    neo4j:
+        endpoint: bolt://neo4j:7687
+        username: neo4j
+        password: epagneul
+
+local:
+    neo4j:
+        endpoint: bolt://localhost:7687
+        username: neo4j
+        password: epagneul
