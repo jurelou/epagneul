@@ -2,7 +2,7 @@
 
 Graph Visualization for windows event logs
 
-![layout](https://raw.githubusercontent.com/jurelou/epagneul/main/images/layout.png)
+![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
 
 
 # install
