@@ -7,6 +7,9 @@ from neo4j.time import DateTime
 
 class File(BaseModel):
     name: str
+    start_time: Union[datetime, DateTime]
+    end_time: Union[datetime, DateTime]
+
     timestamp: Union[datetime, DateTime] = Field(default_factory=datetime.now)
     identifier: UUID = Field(default_factory=lambda : uuid4().hex)
 

@@ -26,17 +26,21 @@ export const style = cytoscape.stylesheet()
     })
     .selector('node:selected').css({
         "border-width": 4,
-        "background-opacity": 0.8,
+        "background-opacity": 0.9,
         "background-color": "data(border_color)",
         "border-color": "#58a6ff",
+        "color": "black",
+        "text-outline-width": 0        
 
     })
     .selector('node.highlight').css({
         "border-width": 2,
-        "background-opacity": 0.5,
+        "background-opacity": 0.9,
         "background-color": "data(border_color)",
         "border-color": "#58a6ff",
 
+        "color": "black",
+        "text-outline-width": 0
     })
     .selector('edge').css({
             "color": "#dee2e6",

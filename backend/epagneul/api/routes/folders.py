@@ -1,14 +1,9 @@
 from loguru import logger
-from fastapi import Depends, Request, Response, APIRouter, UploadFile, File, HTTPException
-from typing import List
-import time
-import os
-from uuid import UUID
+from fastapi import Depends, Request, APIRouter, UploadFile, HTTPException
 import traceback
 
 from epagneul.api.core.neo4j import get_database
-from epagneul.common import settings
-from epagneul.models.folders import Folder
+from epagneul.models.folders import Folder, Stats, MachineStat, UserStat
 from epagneul.models.files import File
 from epagneul.models.graph import Edge, Node, EdgeData, NodeData
 from epagneul.artifacts.evtx import parse_evtx
@@ -24,17 +19,24 @@ def get_folders(db = Depends(get_database)):
 @router.get("/{folder_name}")
 def get_folder(folder_name: str, db = Depends(get_database)):
     print(f"get folder {folder_name}")
-    nodes, edges = db.get_graph(folder=folder_name)
-
-
     folder = db.get_folder(folder_name)
     if not folder:
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    folder.nodes = nodes
-    folder.edges = edges
+    folder.nodes, folder.edges = db.get_graph(folder=folder_name)
 
-    print(folder.dict())
+    users_stats = []
+    machines_stats = []
+    print("get nodes")
+    for node in folder.nodes:
+        if node.data.category == "user":
+            users_stats.append(UserStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
+        elif node.data.category == "machine":
+            machines_stats.append(MachineStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
+    print("im done")
+    folder.stats = Stats(machines_stats=machines_stats, users_stats=users_stats)
+    #identifier=node.data.label, pagerank=node.data.pagerank) for node in nodes if not node.data.is_compound
+    print("returning folder")
     return folder
 
 
@@ -55,20 +57,35 @@ def create_folder(folder_name: str, db = Depends(get_database)):
     print(f"New folder {folder_name}, {new_folder}")
 
 
-def analyze_file(db, folder: str, file_data):
+def analyze_file(db, folder: str, file_data, filename):
+    print(f"Parsing file {filename}")
     store = parse_evtx(file_data)
+    print(f"Done parsing file {filename}")
+    store.finalize()
+    print(f"Done finalizing file {filename}")
+
     db.add_evtx_store(store, folder=folder)
     db.make_lpa(folder)
     db.make_pagerank(folder)
 
+    db.add_folder_file(folder, File(
+        name=filename,
+        start_time=store.start_time,
+        end_time=store.end_time
+    ))
+
+
 @router.post("/{folder_name}/upload")
 async def upload_folder(folder_name: str, request: Request, db = Depends(get_database)):
     print(f"upload files {folder_name}")
+    folder = db.get_folder(folder_name)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
     form_files = await request.form()
     for filename, filedata in form_files.items():
-        db.add_folder_file(folder_name, File(name=filename))
         try:
-            analyze_file(db, folder_name, filedata.file)
+            analyze_file(db, folder_name, filedata.file, filename)
         except Exception as err:
             print("ERR while parsing evtx", err)
             print(traceback.format_exc())

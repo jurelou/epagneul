@@ -1,17 +1,19 @@
 # epagneul
 
-Graph Visualization for windows event logs
+Epagneul is a tool to visualize and investigate windows event logs.
 
 ![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
 
-
-# install
+## Deployment
 
 Requires docker and docker-compose to be installed.
+
+### Installing
 
 ```
 make
 ```
+
 This will install:
 - epagneul web UI (port 8080)
 - epagneul backend (port 8000)
@@ -19,19 +21,8 @@ This will install:
 
 When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server name>:8000/api` in your `docker-compose.yaml`.
 
-## Supported events:
 
-- 4624: Successful logon
-- 4625: Logon failure
-- 4768: Kerberos Authentication (TGT Request)
-- 4769: Kerberos Service Ticket (ST Request)
-- 4776: NTLM Authentication
-- 4672: Assign special privileges
-- 4648: Explicit credential logon
-- 4771: Kerberos pre-authentication failed
-
-
-# TODOs:
+## todos
 
 - [ ] Better SID corelations
 - [ ] hidden markov chains
@@ -46,15 +37,24 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 - [ ] add edge tippy
 - [ ] Proper conversion of known SIDS / security principals, ...
 
-# BUGS
+## Known bugs
 
 - [ ] When multiple files are uploaded, properties will be overwritten
+- [ ] Duplicate machine nodes (maybe also users)
+- [ ] Zoom on a given user is buggy
 
-# References:
+## References:
 
 - https://adsecurity.org/wp-content/uploads/2017/04/2017-BSidesCharm-DetectingtheElusive-ActiveDirectoryThreatHunting-Final.pdf
 - https://github.com/JPCERTCC/LogonTracer
 
-# Why ?  
-* https://jardinage.lemonde.fr/dossier-2599-chiens-chasse.html
-* https://compare-breeds.com/fr/compare-fr/beagle/brittany/
+## Built With
+
+* [Vue.js](https://v3.vuejs.org/) - The web framework used
+* [Cytoscape.js](https://js.cytoscape.org/) - Library used for visualisation and analysis
+* [neo4j](https://neo4j.com/) - Backend database
+* [evtx](https://github.com/omerbenamram/evtx) - Parser for the windows XML EventLog format
+
+## Authors
+
+* **Louis** - *Initial work* - [jurelou](https://github.com/jurelou)

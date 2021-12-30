@@ -1,17 +1,34 @@
 <template>
   <q-page >
 
-    <p v-if="isLoading">Loading graph...</p>
+  
 
-
-    <q-banner v-if="!folder?.files?.length" inline-actions class="text-white bg-negative">
-      There is no files !
-    </q-banner>
-    <div v-else class="q-pa-md q-gutter-sm">
-      <q-btn icon="info" color="primary" text-color="dark" style="z-index:999;" label="Summary" @click="infobox = true"/>
+    <div class="q-pa-md q-gutter-sm">
+      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" :label="'Summary for ' + folder.name" @click="infobox = true"/>
     </div>
+    <q-inner-loading
+        :showing="isLoading"
+        label="Loading folder..."
+        label-class="text-primary"
+        color="primary"
+        label-style="font-size: 1.1em"
+        size="5.5em"
+    />
+    <q-inner-loading :showing="!isLoading && !folder?.files?.length">
+        <q-spinner-radio size="5.5em" color="negative" />
+        <div class="q-pa-md q-gutter-sm text-negative">
+          You don't have any files yet !
+          <br>
+          Click on 'Upload new files'
+        </div>
+    </q-inner-loading>
 
-
+    <div id="timeline_header" />
+    <!--
+    <div id="timeline" />
+    -->
+    <div id="timeline_footer" />
+  
     <div id="cy" />
     
     <q-dialog v-model="infobox" >
@@ -36,7 +53,6 @@
             <div class="text-h6">machines</div>
               <div v-for="i in folder?.nodes" v-bind:key="i">
                 {{ i }}
-
               </div>
           </q-tab-panel>
 
@@ -55,8 +71,6 @@
         </q-card-section>
       </q-card>
     </q-dialog>
-
-
 
     <q-drawer 
       show-if-above
@@ -84,18 +98,18 @@
         -->
         <q-tab-panels v-model="tab" animated>
           <q-tab-panel name="files">
-            <q-list>
+
               <q-expansion-item switch-toggle-side popup default-opened icon="upload" label="Upload new files">
                 <q-separator />
                 <q-card>
                   <q-card-section>
-                        <q-uploader
-                          :url="base_url + '/folders/' + route.params.folder + '/upload'"
-                          multiple
-                          style="max-width: 100%"
-                          @uploaded="uploaded_files"
-                          @failed="failed_upload_file"
-                        />
+                      <q-uploader
+                        :url="base_url + '/folders/' + route.params.folder + '/upload'"
+                        multiple
+                        style="max-width: 100%; overflow: hidden;"
+                        @uploaded="uploaded_files"
+                        @failed="failed_upload_file"
+                      />
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
@@ -114,16 +128,15 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-            </q-list>
           </q-tab-panel>
 
         <!--
         VIZ SETTINGS
         -->
-          <q-tab-panel name="vizualisation">
+          <q-tab-panel name="vizualisation" style="overflow: hidden;">
             <q-list>
-
-              <q-expansion-item style=" overflow: hidden;" switch-toggle-side popup icon="graph" label="Layout">
+            
+              <q-expansion-item switch-toggle-side popup icon="scatter_plot" label="Layout">
                 <q-separator />
                 <q-card>
                   <q-card-section>
@@ -140,33 +153,54 @@
                 </q-card>
               </q-expansion-item> 
 
-              <q-separator spaced />
-              <q-item >
-              <q-item-section>
-
-
-                <q-option-group
-                  color="teal"  
-                  :options="viz_node_options"
-                  type="checkbox"
-                  v-model="default_viz_node_options"
-                  @update:model-value="select_viz_relationships"
-                  
-                />
-              
-              </q-item-section>
-              </q-item>
+              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
+                <q-separator />
+                <q-card>
+                  <q-card-section>
+                    <div class="q-pa-sm q-gutter-md">
+                      <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
+                      <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
+                    </div>
+                    <q-option-group
+                      color="teal"  
+                      :options="viz_node_options"
+                      type="checkbox"
+                      v-model="default_viz_node_options"
+                      @update:model-value="select_viz_relationships"
+                      
+                    />
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
+              <q-expansion-item switch-toggle-side popup icon="search" label="Search">
+                <q-separator />
+                <q-card>
+                  <q-card-section>
+                    <q-select
+                      use-input
+                      outlined
+                      :options="available_search_users_ref"
+                      v-model="selected_machine"
+                      label="Search for a user"
+                      input-debounce="0"
+                      transition-show="scale"
+                      transition-hide="scale"
+                      @update:model-value="zoomNode"
+                      @filter="filterMachine"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey">
+                            No results
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>                  
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
             </q-list>
-
-
-            <div class="q-pa-md">
-              <div class="q-px-sm">
-
-              </div>
-            </div>
-
           </q-tab-panel>
-
         </q-tab-panels>
       </q-card>
     </q-drawer>
@@ -179,36 +213,128 @@ import { useRoute } from 'vue-router'
 import { useFolder } from '../hooks';
 import { useQuasar } from 'quasar'
 
-import cytoscape from 'cytoscape';
-
-import cxtmenu from 'cytoscape-cxtmenu';
-import popper from 'cytoscape-popper';
-import klay from 'cytoscape-klay';
-import coseBilkent from 'cytoscape-cose-bilkent';
-import fcose from 'cytoscape-fcose';
-import layoutUtilities from 'cytoscape-layout-utilities';
-import viewUtilities  from 'cytoscape-view-utilities';
-
-import { style } from './cy/style';
-import { makePopper, makeEvents } from './cy/events';
-
-cytoscape.use( cxtmenu );
-cytoscape.use( layoutUtilities );
-cytoscape.use( viewUtilities );
-
-cytoscape.use( popper );
-cytoscape.use( klay );
-cytoscape.use( coseBilkent );
-cytoscape.use( fcose );
-
+import { makeCytoscape } from './cy/cytoscape'
+import { makePopper } from './cy/events';
 
 const route = useRoute()
 const $q = useQuasar()
+const tab = ref('files')
+var cy = null
+
+var timeline_chart = null
+
+onMounted(() => {
+  cy = makeCytoscape(folder.value)
+
+})
+
+const infobox = ref(false)
+const infotab = ref('machines')
+
+///////////////////////////////////////////////////////////////
+// TIMELINE
+///////////////////////////////////////////////////////////////
+import { make_timeline } from './timeline/timeline';
+
+let timeline_data = []
+///////////////////////////////////////////////////////////////
+// SELECT MACHINE
+///////////////////////////////////////////////////////////////
+const selected_machine = ref()
+
+let available_search_users = []
+const available_search_users_ref = ref(available_search_users)
+
+function zoomNode(node_label) {
+  const node = cy.elements().filter(e => e.data('label') == node_label)
+
+  cy.nodes().forEach(n => n.removeClass('highlight'))
+  cy.edges().forEach(n => n.removeClass('highlight'))
+  node.addClass('highlight')
+  /*
+  node.incomers().forEach(e => { e.addClass('highlight') })
+  node.outgoers().forEach(e => { e.addClass('highlight') })
+  */
+  cy.animation({
+    zoom: 1,
+    center: {
+      eles: node
+    }
+  }).play()
+}
+
+function filterMachine (val, update) {
+  if (val === '') {
+    update(() => {
+      available_search_users_ref.value = available_search_users
+    })
+    return
+  }
+  update(() => { available_search_users_ref.value = available_search_users.filter(v => v.toLowerCase().indexOf(val.toLowerCase()) > -1) })
+}
+
+///////////////////////////////////////////////////////////////
+// FOLDER DATA
+///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
-var cy = null;
-const base_url = process.env.VUE_APP_BASE_URL
+watch(() => folder, (folder) => {
+  let v = folder.value
+  cy.json({elements: v})
+  onChangeVisualisationMode(selected_viz_type.value, false)
+  makePopper(cy)
 
+
+
+  let start_time = new Date(Date.parse(folder.value.start_time))
+  let end_time = new Date(Date.parse(folder.value.end_time))
+
+  if (!end_time || !start_time) {
+    console.log("NOPE") 
+  }
+  /*
+  let timerange = []
+  let i = 0
+  while (true) {
+    const date = new Date(start_time.getTime() +  (i*60*60*1000))
+    timerange.push(date)
+    if (date > end_time) { break }
+    if (i > 100000) {
+      console.log("Verry long timeline ... ", i)
+      break
+    }
+    i++
+  }
+  */
+  folder.value.nodes.forEach((node, index) => {
+    if (node.data.category == "user") {
+      available_search_users.push(node.data.label)
+      /*
+      let node_timeline = []
+      
+      node.data.timeline.forEach((item, index) => {
+        node_timeline.push({
+          value: item,
+          starting_time: timerange[index],
+          ending_time: timerange[index + 1],
+        })
+      })
+      timeline_data.push({
+        label: node.data.label,
+          isIncluded: true,
+          times: node_timeline
+      })
+      */
+
+    }
+  })
+//make_timeline(timeline_data)
+
+}, { deep: true })
+
+///////////////////////////////////////////////////////////////
+// SELECT EDGES
+///////////////////////////////////////////////////////////////
 const default_viz_node_options = ref(["4624", "4625", "4768", "4769", "4776", "4648", "4771" ])
 const viz_node_options = [
   { label: '4624: Successful logon', value: '4624', color: 'green' },
@@ -220,36 +346,18 @@ const viz_node_options = [
   { label: '4771: Kerberos pre-authentication failed', value: '4771', color: 'green' }
 ]
 
-const options = [ 'fcose', 'cose-bilkent', 'breadthfirst', 'klay', 'grid', 'circle'];
-const selected_viz_type = ref('fcose');
-const tab = ref('files');
-const infobox = ref(false)
-const infotab = ref('machines')
-
-function layoutConfig(layout, animate = 'end') {
-  return {
-    name: layout,
-    quality: 'proof',
-    randomize: true,
-    animationEasing: 'ease-in-sine',
-    animate: animate,
-    animationDuration: 1000,
-
-    fit: true,
-    tile: false,
-    idealEdgeLength: 80,
-    packComponents: false,
-    nodeRepulsion: 17000
-  }
+function select_all_edges() {
+  default_viz_node_options.value = ["4624", "4625", "4768", "4769", "4776", "4648", "4771" ]
+  select_viz_relationships(default_viz_node_options.value)
 }
-watch(() => folder, (folder) => {
-  let v = folder.value
-  cy.json({elements: v})
-  onChangeVisualisationMode(selected_viz_type.value)
-  makePopper(cy)
-}, { deep: true })
+
+function unselect_all_edges() {
+  default_viz_node_options.value = []
+  select_viz_relationships([])
+}
 
 function select_viz_relationships(selected_ids) {
+  console.log(selected_ids)
   cy.edges().forEach(edge => {
     if (selected_ids.includes(edge.data().label))
       edge.style("display", "element")
@@ -267,6 +375,34 @@ function select_viz_relationships(selected_ids) {
   onChangeVisualisationMode(selected_viz_type.value)
 }
 
+///////////////////////////////////////////////////////////////
+// CHANGE LAYOUT
+///////////////////////////////////////////////////////////////
+const options = [ 'fcose', 'cose-bilkent', 'breadthfirst', 'klay', 'grid', 'circle'];
+const selected_viz_type = ref('fcose');
+
+function onChangeVisualisationMode(layout_name, animate = true) {
+  console.log("ANIMATE")
+  cy.layout({
+    name: layout_name,
+    randomize: true,
+    //animationEasing: 'ease-out-sine',
+    animate: animate,
+    animationDuration: 1000,
+
+    fit: true,
+    tile: true,
+    idealEdgeLength: 80,
+    packComponents: false,
+    nodeRepulsion: 17000
+  }).run()
+}
+
+///////////////////////////////////////////////////////////////
+// FILE UPLOAD
+///////////////////////////////////////////////////////////////
+const base_url = process.env.VUE_APP_BASE_URL
+
 function uploaded_files(info) {
   refetch.value()
 }
@@ -279,54 +415,79 @@ function failed_upload_file(info) {
   })
 }
 
-function onChangeVisualisationMode(layout_name) {
-  cy.layout(layoutConfig(layout_name)).run()
-}
-
-onMounted(() => {
-  cy = cytoscape({
-    container: document.getElementById('cy'),
-    boxSelectionEnabled: false,
-    elements: folder.value,
-    ready: function() {
-      let layoutUtilities = this.layoutUtilities({
-        desiredAspectRatio: 2,
-        fullness: 50,
-        componentSpacing: 100
-      });
-      makeEvents(this)
-    },
-    layout: layoutConfig(selected_viz_type.value, false),
-    style: style,
-    elements: folder.value
-  })
-})
 
 </script>
 
 <style>
-      body {
-        overflow: hidden;
-      }
-      #cy {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        right: 0;
-      }
-      .popper-div {
-        position: relative;
-        background-color: #333;
-        color: #fff;
-        border-radius: 4px;
-        font-size: 14px;
-        line-height: 1.4;
-        outline: 0;
-        padding: 5px 9px;
-      }
-			.cxtmenu-disabled {
-				opacity: 0.333;
-			}
+  body {
+    overflow: hidden;
+  }
+  #cy {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    margin-top: 5%;
+    height: 95%
+  }
+  .popper-div {
+    position: relative;
+    background-color: #333;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    outline: 0;
+    padding: 5px 9px;
+  }
+	.cxtmenu-disabled {
+		opacity: 0.333;
+	}
+  /*
+  TIMELINE
+  */
+#timeline {
+  background-color: transparent;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 400px;
+}
+
+.footer {
+  fill: blue;
+}
+
+.mini {
+  fill: pink;
+}
+
+.main {
+  background-color: blue;
+  fill: blue;
+}
+
+.core-chart line {
+  stroke: grey;
+}
+
+.core-labels text {
+  text-anchor: end;
+  fill: blue;
+}
+
+.domain, .tick line{
+  /*fill: blue; */
+  stroke: #20C20E;
+}
+
+.tick text{
+  fill: red; 
+}
+
+.selection {
+  fill: #20C20E !important;
+
+}
 
 </style>
