@@ -24,7 +24,8 @@ export function makePopper(cy) {
 }
 
 export function makeEvents(cy) {
-    var view_utils = cy.viewUtilities();
+    var view_utils = cy.viewUtilities({
+    });
   
     makePopper(cy)
 

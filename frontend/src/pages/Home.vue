@@ -40,9 +40,14 @@ function add_new_folder() {
 
     <q-btn color="positive" text-color="dark" icon="add" label="Create a folder" @click="create_folder_dialog = true"/>
 
-
-    <p v-if="isLoading">Loading folders...</p>
-    
+    <q-inner-loading
+        :showing="isLoading"
+        label="Loading folders..."
+        label-class="text-primary"
+        color="primary"
+        label-style="font-size: 1.1em"
+        size="5.5em"
+    />
 
     <p v-if="folders && folders.length == 0">You dont have any folders yet !</p>
     <q-list style="rounded-borders" v-else>
