@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Any
 
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -29,6 +29,7 @@ class NodeData(BaseModel):
     width: int = 50
     height: int = 50
     algo_pagerank: float = 0.15
+    timeline: Any
 
 class Node(BaseModel):
     data: NodeData

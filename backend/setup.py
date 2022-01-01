@@ -25,6 +25,8 @@ setup(
         'aiofiles==0.7.0',
         'evtx==0.7.2',
         'neo4j==4.3.1',
+        'scipy==1.7.3',
+        'numpy==1.21.5'
     ],
     extras_require={
         'dev': [

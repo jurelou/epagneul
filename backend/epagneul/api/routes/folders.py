@@ -28,7 +28,6 @@ def get_folder(folder_name: str, db = Depends(get_database)):
     users_stats = []
     machines_stats = []
     for node in folder.nodes:
-        print(node.data.category)
         if node.data.category == "user":
             users_stats.append(UserStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
         elif node.data.category == "machine":
@@ -66,6 +65,10 @@ def analyze_file(db, folder: str, file_data):
 @router.post("/{folder_name}/upload")
 async def upload_folder(folder_name: str, request: Request, db = Depends(get_database)):
     print(f"upload files {folder_name}")
+    folder = db.get_folder(folder_name)
+    if not folder:
+        raise HTTPException(status_code=404, detail="Folder not found")
+
     form_files = await request.form()
     for filename, filedata in form_files.items():
         db.add_folder_file(folder_name, File(name=filename))

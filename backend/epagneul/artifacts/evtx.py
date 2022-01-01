@@ -9,7 +9,11 @@ from epagneul.models.graph import Node, Edge
 from typing import Optional, List, Any
 from pydantic import BaseModel, Field, validator
 import pandas as pd
+import numpy as np
 import ipaddress
+#from hmmlearn import hmm
+#import joblib
+from epagneul.api.core.changefinder import ChangeFinder
 
 """
 Champs uniques dans le domaine:
@@ -181,23 +185,48 @@ def convert_logtime(logtime, tzone=1):
 
 def get_event_from_xml(raw_xml_event):
     xml_event = to_lxml(raw_xml_event)
-    t = convert_logtime(xml_event.xpath("/Event/System/TimeCreated")[0].get("SystemTime"))
-
     return Event(
         event_id=int(xml_event.xpath("/Event/System/EventID")[0].text),
         #computer_name=xml_event.xpath("/Event/System/Computer")[0].text,
-        timestamp=t, #datetime.datetime(*t.timetuple()[:4]),
+        timestamp=convert_logtime(xml_event.xpath("/Event/System/TimeCreated")[0].get("SystemTime")),
         data=xml_event.xpath("/Event/EventData/Data")
     )
-
-def merge_models(a, b):
-    print("->", dir(a))
 
 class Datastore:
     def __init__(self):
         self.machines = {}
         self.users = {}
         self.logon_events = {}
+        #self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
+        
+        self.ml_list = []
+
+        self.start_time = None
+        self.end_time = None
+
+    def add_timestamp(self, timestamp):
+        if not self.start_time:
+            self.start_time = timestamp
+        elif self.start_time > timestamp:
+            self.start_time = timestamp
+
+        if not self.end_time:
+            self.end_time = timestamp
+        elif self.end_time < timestamp:
+            self.end_time = timestamp
+
+    def get_change_finder(self):
+        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
+        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
+        count_set = count_set.drop_duplicates()
+
+        tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
+
+        return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
+
+    def add_ml_frame(self, frame):
+        self.ml_list.append(frame)
+        #self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
     def add_logon_event(self, event):
         event.identifier = f"{event.event_id}-{event.source}-{event.target}"
@@ -289,7 +318,8 @@ def parse_evtx(file_data):
         if not re.search(USEFULL_EVENTS_STR, data):
             continue
         event = get_event_from_xml(data)
-        # https://github.com/JPCERTCC/LogonTracer/blob/master/logontracer.py#L875
+        store.add_timestamp(event.timestamp)
+        
 
         ###############################################################
         # Admin users:
@@ -340,6 +370,9 @@ def parse_evtx(file_data):
             user_id = store.add_user(user)
             machine_id = store.add_machine(machine)
 
+            if user_id:
+                store.add_ml_frame([event.timestamp.strftime("%Y-%m-%d %H:%M:%S"), event.event_id, user_id])
+
             if user_id and machine_id:
 
                 store.add_logon_event(LogonEvent(
@@ -384,9 +417,11 @@ def parse_evtx(file_data):
             user_id = store.add_user(user)
             machine_id = store.add_machine(machine)
 
+            if user_id:
+                store.add_ml_frame([event.timestamp.strftime("%Y-%m-%d %H:%M:%S"), event.event_id, user_id])
+
 
             if user_id and machine_id:
-
                 store.add_logon_event(LogonEvent(
                     timestamp=event.timestamp,
                     event_id=event.event_id,
@@ -397,22 +432,197 @@ def parse_evtx(file_data):
                     )
                 )
     return store
+"""
+def predict_hmm(frame, users, start_day):
+    detections = []
+    model = joblib.load("multinomial_hmm.pkl")
+
+    while True:
+        start_day_str = start_day.strftime("%Y-%m-%d")
+        for user in users:
+            hosts = np.unique(frame[(frame["user"] == user)].host.values)
+            for host in hosts:
+                udata = []
+
+                for _, data in frame[(frame["date"].str.contains(start_day_str)) & (frame["user"] == user) & (frame["host"] == host)].iterrows():
+                    id = data["id"]
+                    if id == 4776:
+                        udata.append(0)
+                    elif id == 4768:
+                        udata.append(1)
+                    elif id == 4769:
+                        udata.append(2)
+                    elif id == 4624:
+                        udata.append(3)
+                    elif id == 4625:
+                        udata.append(4)
+                    elif id == 4648:
+                        udata.append(5)
+
+                if len(udata) > 2:
+                    data_decode = model.predict(np.array([np.array(udata)], dtype="int").T)
+                    unique_data = np.unique(data_decode)
+                    if unique_data.shape[0] == 2:
+                        if user not in detections:
+                            detections.append(user)
+
+
+        start_day += datetime.timedelta(days=1)
+        if frame.loc[(frame["date"].str.contains(start_day_str))].empty:
+            break
+    return detections
+
+
+def learn_hmm(frame, users, start_day):
+    lengths = []
+    data_array = np.array([])
+    emission_probability = np.array([[0.09,   0.05,   0.35,   0.51],
+                                     [0.0003, 0.0004, 0.0003, 0.999],
+                                     [0.0003, 0.0004, 0.0003, 0.999]])
+
+    while True:
+        start_day_str = start_day.strftime("%Y-%m-%d")
+        for user in users:
+            hosts = np.unique(frame[(frame["user"] == user)].host.values)
+            for host in hosts:
+                udata = np.array([])
+                for _, data in frame[(frame["date"].str.contains(start_day_str)) & (frame["user"] == user) & (frame["host"] == host)].iterrows():
+                    udata = np.append(udata, data["id"])
+
+                if udata.shape[0] > 2:
+                    data_array = np.append(data_array, udata)
+                    lengths.append(udata.shape[0])
+        start_day += datetime.timedelta(days=1)
+        if frame.loc[(frame["date"].str.contains(start_day_str))].empty:
+            break
+
+    data_array[data_array == 4776] = 0
+    data_array[data_array == 4768] = 1
+    data_array[data_array == 4769] = 2
+    data_array[data_array == 4624] = 3
+    data_array[data_array == 4625] = 4
+    data_array[data_array == 4648] = 5
+
+    model = hmm.MultinomialHMM(n_components=3, n_iter=10000)
+    #model.emissionprob_ = emission_probability
+    model.fit(np.array([data_array], dtype="int").T, lengths)
+    joblib.dump(model, "./multinomial_hmm.pkl")
+"""
+
+def adetection(counts, users, starttime, tohours):
+    count_array = np.zeros((6, len(users), tohours + 1))
+    count_all_array = []
+    result_array = []
+    cfdetect = {}
+    for _, event in counts.iterrows():
+        column = int((datetime.datetime.strptime(event["dates"], "%Y-%m-%d  %H:%M:%S") - starttime).total_seconds() / 3600)
+        row = users.index(event["username"])
+        # count_array[row, column, 0] = count_array[row, column, 0] + count
+        if event["eventid"] == 4624:
+            count_array[0, row, column] = event["count"]
+        elif event["eventid"] == 4625:
+            count_array[1, row, column] = event["count"]
+        elif event["eventid"] == 4768:
+            count_array[2, row, column] = event["count"]
+        elif event["eventid"] == 4769:
+            count_array[3, row, column] = event["count"]
+        elif event["eventid"] == 4776:
+            count_array[4, row, column] = event["count"]
+        elif event["eventid"] == 4648:
+            count_array[5, row, column] = event["count"]
+    count_sum = np.sum(count_array, axis=0)
+    count_average = count_sum.mean(axis=0)
+    num = 0
+    for udata in count_sum:
+        cf = ChangeFinder(r=0.04, order=1, smooth=6)
+        ret = []
+        for i in count_average:
+            cf.update(i)
+
+        for i in udata:
+            score = cf.update(i)
+            ret.append(round(score[1], 2))
+        result_array.append(ret)
+
+        cfdetect[users[num]] = max(ret)
+
+        count_all_array.append(udata.tolist())
+        for var in range(0, 6):
+            con = []
+            for i in range(0, tohours + 1):
+                con.append(count_array[var, num, i])
+            count_all_array.append(con)
+        num += 1
+
+    return count_all_array, result_array, cfdetect
+
 
 if __name__ == "__main__":
     from epagneul.api.core.neo4j import get_database
-    
 
+    users = ['scep-service-ex', 'S-1-5-21-1614722772-2063729921-1886836735-1166', 'S-1-5-21-3190859163-3046400631-2231273112-500', 'S-1-5-21-1614722772-2063729921-1886836735-1217', 'S-1-5-21-1614722772-2063729921-1886836735-1453', 'S-1-5-21-1614722772-2063729921-1886836735-1270', 'S-1-5-21-1614722772-2063729921-1886836735-1515', 'S-1-5-21-1614722772-2063729921-1886836735-1862', 'S-1-5-80-1184457765-4068085190-3456807688-2200952327-3769537534', 'local service', 'S-1-5-90-0-1', 'network service', 'system', 'scep-service-rd', 'scep-infra-dc-a', 'S-1-5-21-1614722772-2063729921-1886836735-1105', 'S-1-5-21-1614722772-2063729921-1886836735-1791', '', 'S-1-5-21-1614722772-2063729921-1886836735-1549', 'S-1-5-90-1', 'S-1-5-21-1614722772-2063729921-1886836735-1366', 'S-1-5-21-1614722772-2063729921-1886836735-1001', 'S-1-5-21-1614722772-2063729921-1886836735-1107', 'S-1-5-21-1614722772-2063729921-1886836735-1106', 'S-1-5-21-1614722772-2063729921-1886836735-1898', 'S-1-5-21-1614722772-2063729921-1886836735-1784', 'S-1-5-21-1614722772-2063729921-1886836735-1104', 'S-1-5-21-1614722772-2063729921-1886836735-1897', 'S-1-5-21-1614722772-2063729921-1886836735-1108', 'scep-service-pk', 'iusr', 'S-1-5-21-1614722772-2063729921-1886836735-1165', 'scep-service-fi', 'S-1-5-21-1614722772-2063729921-1886836735-1109', 'S-1-5-21-1614722772-2063729921-1886836735-1110', 'S-1-5-21-1614722772-2063729921-1886836735-1112', 'S-1-5-21-1614722772-2063729921-1886836735-1814', 'S-1-5-21-1614722772-2063729921-1886836735-1113', 'S-1-5-21-1614722772-2063729921-1886836735-1111', 'S-1-5-21-1614722772-2063729921-1886836735-1884', 'S-1-5-21-1614722772-2063729921-1886836735-1115', 'S-1-5-21-1614722772-2063729921-1886836735-1735', 'S-1-5-21-1614722772-2063729921-1886836735-1116', 'S-1-5-21-1614722772-2063729921-1886836735-1118', 'S-1-5-21-1614722772-2063729921-1886836735-1295', 'S-1-5-21-1614722772-2063729921-1886836735-1117', 'S-1-5-21-1614722772-2063729921-1886836735-1114', 'S-1-5-21-1614722772-2063729921-1886836735-1347', 'S-1-5-21-1614722772-2063729921-1886836735-1759', 'S-1-5-21-1614722772-2063729921-1886836735-1851', 'S-1-5-21-1614722772-2063729921-1886836735-1516', 'S-1-5-21-1614722772-2063729921-1886836735-1684', 'S-1-5-21-1614722772-2063729921-1886836735-1121', 'S-1-5-21-1614722772-2063729921-1886836735-1119', 'S-1-5-21-1614722772-2063729921-1886836735-1123', 'S-1-5-21-1614722772-2063729921-1886836735-1120', 'S-1-5-21-1614722772-2063729921-1886836735-1122', 'S-1-5-21-1614722772-2063729921-1886836735-1797', 'S-1-5-21-1614722772-2063729921-1886836735-1849', 'S-1-5-21-1614722772-2063729921-1886836735-1361', 'S-1-5-21-1614722772-2063729921-1886836735-1127', 'S-1-5-21-1614722772-2063729921-1886836735-1467', 'S-1-5-21-1614722772-2063729921-1886836735-1128', 'S-1-5-21-1614722772-2063729921-1886836735-1367', 'S-1-5-21-1614722772-2063729921-1886836735-1125', 'S-1-5-21-1614722772-2063729921-1886836735-1124', 'S-1-5-21-1614722772-2063729921-1886836735-1126', 'S-1-5-21-1614722772-2063729921-1886836735-1129', 'S-1-5-21-1614722772-2063729921-1886836735-1133', 'S-1-5-21-1614722772-2063729921-1886836735-1509', 'S-1-5-21-1614722772-2063729921-1886836735-1130', 'S-1-5-21-1614722772-2063729921-1886836735-1131', 'S-1-5-21-1614722772-2063729921-1886836735-1369', 'S-1-5-21-1614722772-2063729921-1886836735-1132', 'S-1-5-21-1614722772-2063729921-1886836735-1534', 'S-1-5-21-1614722772-2063729921-1886836735-1134', 'scep-admin-wks1', 'scep-admin-wks2', 'scep-wks-02', 'scep-wks-01', 'scep-wks-03', 'scep-wks-06', 'scep-wks-04', 'scep-wks-07', 'scep-wks-05', 'scep-wks-09', 'scep-wks-08', 'scep-wks-12', 'scep-wks-10', 'scep-wks-11', 'scep-wks-13', 'scep-wks-18', 'scep-wks-16', 'scep-wks-17', 'scep-wks-14', 'scep-wks-15', 'scep-wks-23', 'scep-wks-21', 'scep-wks-22', 'scep-wks-19', 'scep-wks-20', 'scep-wks-24', 'S-1-5-21-1614722772-2063729921-1886836735-500', 'S-1-5-90-0-2', 'S-1-5-21-1493626464-1800764222-4210299026-500', 'S-1-5-21-143386994-2064860016-4136263729-500', 'S-1-5-21-2042724577-1801804113-2809386060-500', 'S-1-5-21-2492111565-2571168641-1099202330-500', 'S-1-5-21-1930436988-33830073-716220238-500', 'S-1-5-21-2105026350-389141950-1573985521-500', 'S-1-5-21-995854933-13933936-3220113501-500', 'S-1-5-21-2315413114-2228892671-2054880901-500', 'S-1-5-21-309712095-726237008-3563880964-500', 'S-1-5-21-1950601678-3807048000-3276331250-500', 'S-1-5-21-3816986116-4056927275-583030915-500', 'S-1-5-21-2947775960-2003569467-1206992157-500', 'S-1-5-21-3452268287-1118998018-1709054811-500', 'S-1-5-21-1541107420-194589081-2794743203-500', 'S-1-5-21-1278085612-538607690-602980321-500', 'S-1-5-21-443682548-66122474-1922608812-500', 'S-1-5-21-268263514-3082661447-3156119065-500', 'S-1-5-21-259117265-2066337403-3743540599-500', 'S-1-5-21-214208530-253367804-3631887496-500', 'S-1-5-21-2633843497-1387056221-1230101653-500', 'S-1-5-21-1225465739-1138774916-3069107167-500', 'S-1-5-21-2616939979-2839056425-4098346542-500', 'S-1-5-21-569642405-1079416390-590265888-500', 'S-1-5-21-2009882220-2748953025-2577819363-500', 'S-1-5-21-3450254828-2593496867-3440634386-500', 'S-1-5-21-2696980251-2893310999-3498759677-500', 'S-1-5-21-166234388-3044547414-104967907-500', 'S-1-5-21-2744361779-3909220837-3693416614-500', 'S-1-5-21-1040107654-1627049556-1359509401-500', 'S-1-5-21-1614722772-2063729921-1886836735-2605', 'nevergonnaletyoudown', 'scep.corp\\adm-ybenjamin', 'S-1-5-21-1614722772-2063729921-1886836735-1728', 'S-1-5-90-0-3']
     db = get_database()
     db.bootstrap()
-    #db.rm()
+    db.rm()
     
     store = parse_evtx("/data/filtered2.evtx")
-    #db.add_evtx_store(store, folder="lol")
 
-    #db.make_lpa("lol")
-    #db.make_pagerank("lol")
+    print(store.get_change_finder())
 
-    #a = db.get_graph("lol")
-    #db.add_many_machines(store.machines.values(), folder="lol")
-    #db.add_many_logon_events(store.logon_events.values(), folder="lol")
+    """
+    #start_day = datetime.datetime(*store.start_time.timetuple()[:3]).strftime("%Y-%m-%d")
+    start_day = datetime.datetime.strptime("2021-12-09", "%Y-%m-%d") #temp
+    learn_hmm(ml_frame, users, start_day)
+    predictions = predict_hmm(ml_frame, users, start_day)
+    print(predictions)
+    """
+
+    #db.add_evtx_store(store, folder="a")
+    #db.make_lpa("a")
+    #db.make_pagerank("a")
+
+    
+    
+
+if __name__ == "__main__":
+    from epagneul.api.core.neo4j import get_database
+
+    users = ['scep-service-ex', 'S-1-5-21-1614722772-2063729921-1886836735-1166', 'S-1-5-21-3190859163-3046400631-2231273112-500', 'S-1-5-21-1614722772-2063729921-1886836735-1217', 'S-1-5-21-1614722772-2063729921-1886836735-1453', 'S-1-5-21-1614722772-2063729921-1886836735-1270', 'S-1-5-21-1614722772-2063729921-1886836735-1515', 'S-1-5-21-1614722772-2063729921-1886836735-1862', 'S-1-5-80-1184457765-4068085190-3456807688-2200952327-3769537534', 'local service', 'S-1-5-90-0-1', 'network service', 'system', 'scep-service-rd', 'scep-infra-dc-a', 'S-1-5-21-1614722772-2063729921-1886836735-1105', 'S-1-5-21-1614722772-2063729921-1886836735-1791', '', 'S-1-5-21-1614722772-2063729921-1886836735-1549', 'S-1-5-90-1', 'S-1-5-21-1614722772-2063729921-1886836735-1366', 'S-1-5-21-1614722772-2063729921-1886836735-1001', 'S-1-5-21-1614722772-2063729921-1886836735-1107', 'S-1-5-21-1614722772-2063729921-1886836735-1106', 'S-1-5-21-1614722772-2063729921-1886836735-1898', 'S-1-5-21-1614722772-2063729921-1886836735-1784', 'S-1-5-21-1614722772-2063729921-1886836735-1104', 'S-1-5-21-1614722772-2063729921-1886836735-1897', 'S-1-5-21-1614722772-2063729921-1886836735-1108', 'scep-service-pk', 'iusr', 'S-1-5-21-1614722772-2063729921-1886836735-1165', 'scep-service-fi', 'S-1-5-21-1614722772-2063729921-1886836735-1109', 'S-1-5-21-1614722772-2063729921-1886836735-1110', 'S-1-5-21-1614722772-2063729921-1886836735-1112', 'S-1-5-21-1614722772-2063729921-1886836735-1814', 'S-1-5-21-1614722772-2063729921-1886836735-1113', 'S-1-5-21-1614722772-2063729921-1886836735-1111', 'S-1-5-21-1614722772-2063729921-1886836735-1884', 'S-1-5-21-1614722772-2063729921-1886836735-1115', 'S-1-5-21-1614722772-2063729921-1886836735-1735', 'S-1-5-21-1614722772-2063729921-1886836735-1116', 'S-1-5-21-1614722772-2063729921-1886836735-1118', 'S-1-5-21-1614722772-2063729921-1886836735-1295', 'S-1-5-21-1614722772-2063729921-1886836735-1117', 'S-1-5-21-1614722772-2063729921-1886836735-1114', 'S-1-5-21-1614722772-2063729921-1886836735-1347', 'S-1-5-21-1614722772-2063729921-1886836735-1759', 'S-1-5-21-1614722772-2063729921-1886836735-1851', 'S-1-5-21-1614722772-2063729921-1886836735-1516', 'S-1-5-21-1614722772-2063729921-1886836735-1684', 'S-1-5-21-1614722772-2063729921-1886836735-1121', 'S-1-5-21-1614722772-2063729921-1886836735-1119', 'S-1-5-21-1614722772-2063729921-1886836735-1123', 'S-1-5-21-1614722772-2063729921-1886836735-1120', 'S-1-5-21-1614722772-2063729921-1886836735-1122', 'S-1-5-21-1614722772-2063729921-1886836735-1797', 'S-1-5-21-1614722772-2063729921-1886836735-1849', 'S-1-5-21-1614722772-2063729921-1886836735-1361', 'S-1-5-21-1614722772-2063729921-1886836735-1127', 'S-1-5-21-1614722772-2063729921-1886836735-1467', 'S-1-5-21-1614722772-2063729921-1886836735-1128', 'S-1-5-21-1614722772-2063729921-1886836735-1367', 'S-1-5-21-1614722772-2063729921-1886836735-1125', 'S-1-5-21-1614722772-2063729921-1886836735-1124', 'S-1-5-21-1614722772-2063729921-1886836735-1126', 'S-1-5-21-1614722772-2063729921-1886836735-1129', 'S-1-5-21-1614722772-2063729921-1886836735-1133', 'S-1-5-21-1614722772-2063729921-1886836735-1509', 'S-1-5-21-1614722772-2063729921-1886836735-1130', 'S-1-5-21-1614722772-2063729921-1886836735-1131', 'S-1-5-21-1614722772-2063729921-1886836735-1369', 'S-1-5-21-1614722772-2063729921-1886836735-1132', 'S-1-5-21-1614722772-2063729921-1886836735-1534', 'S-1-5-21-1614722772-2063729921-1886836735-1134', 'scep-admin-wks1', 'scep-admin-wks2', 'scep-wks-02', 'scep-wks-01', 'scep-wks-03', 'scep-wks-06', 'scep-wks-04', 'scep-wks-07', 'scep-wks-05', 'scep-wks-09', 'scep-wks-08', 'scep-wks-12', 'scep-wks-10', 'scep-wks-11', 'scep-wks-13', 'scep-wks-18', 'scep-wks-16', 'scep-wks-17', 'scep-wks-14', 'scep-wks-15', 'scep-wks-23', 'scep-wks-21', 'scep-wks-22', 'scep-wks-19', 'scep-wks-20', 'scep-wks-24', 'S-1-5-21-1614722772-2063729921-1886836735-500', 'S-1-5-90-0-2', 'S-1-5-21-1493626464-1800764222-4210299026-500', 'S-1-5-21-143386994-2064860016-4136263729-500', 'S-1-5-21-2042724577-1801804113-2809386060-500', 'S-1-5-21-2492111565-2571168641-1099202330-500', 'S-1-5-21-1930436988-33830073-716220238-500', 'S-1-5-21-2105026350-389141950-1573985521-500', 'S-1-5-21-995854933-13933936-3220113501-500', 'S-1-5-21-2315413114-2228892671-2054880901-500', 'S-1-5-21-309712095-726237008-3563880964-500', 'S-1-5-21-1950601678-3807048000-3276331250-500', 'S-1-5-21-3816986116-4056927275-583030915-500', 'S-1-5-21-2947775960-2003569467-1206992157-500', 'S-1-5-21-3452268287-1118998018-1709054811-500', 'S-1-5-21-1541107420-194589081-2794743203-500', 'S-1-5-21-1278085612-538607690-602980321-500', 'S-1-5-21-443682548-66122474-1922608812-500', 'S-1-5-21-268263514-3082661447-3156119065-500', 'S-1-5-21-259117265-2066337403-3743540599-500', 'S-1-5-21-214208530-253367804-3631887496-500', 'S-1-5-21-2633843497-1387056221-1230101653-500', 'S-1-5-21-1225465739-1138774916-3069107167-500', 'S-1-5-21-2616939979-2839056425-4098346542-500', 'S-1-5-21-569642405-1079416390-590265888-500', 'S-1-5-21-2009882220-2748953025-2577819363-500', 'S-1-5-21-3450254828-2593496867-3440634386-500', 'S-1-5-21-2696980251-2893310999-3498759677-500', 'S-1-5-21-166234388-3044547414-104967907-500', 'S-1-5-21-2744361779-3909220837-3693416614-500', 'S-1-5-21-1040107654-1627049556-1359509401-500', 'S-1-5-21-1614722772-2063729921-1886836735-2605', 'nevergonnaletyoudown', 'scep.corp\\adm-ybenjamin', 'S-1-5-21-1614722772-2063729921-1886836735-1728', 'S-1-5-90-0-3']
+    db = get_database()
+    db.bootstrap()
+    db.rm()
+    
+    store = parse_evtx("/data/filtered2.evtx")
+    count_set = pd.DataFrame(store.ml_list, columns =["dates", "eventid", "username"])
+
+    count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
+    count_set = count_set.drop_duplicates()
+
+    #count_set = pd.to_pickle(count_set, "ml_frame.pkl")
+
+    tohours = 37# int((store.end_time - store.start_time).total_seconds() / 3600)
+    
+    ml_frame = pd.read_pickle("ml_frame.pkl")
+
+    timelines, detects, detect_cf = adetection(ml_frame, users, datetime.datetime.strptime("2021-12-09", "%Y-%m-%d"), tohours)
+    
+    i = 0
+    for u in users:
+        print(u, detects[i])
+        i = i + 1
+
+    s = {k: v for k, v in sorted(detect_cf.items(), key=lambda item: item[1])}
+    print(s)
+    """
+    #start_day = datetime.datetime(*store.start_time.timetuple()[:3]).strftime("%Y-%m-%d")
+    start_day = datetime.datetime.strptime("2021-12-09", "%Y-%m-%d") #temp
+    learn_hmm(ml_frame, users, start_day)
+    predictions = predict_hmm(ml_frame, users, start_day)
+    print(predictions)
+    """
+
+    #db.add_evtx_store(store, folder="a")
+    #db.make_lpa("a")
+    #db.make_pagerank("a")
+
     

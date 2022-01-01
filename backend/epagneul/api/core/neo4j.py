@@ -107,15 +107,24 @@ class DataBase:
                 folder_identifier=folder_id
             )
     def add_evtx_store(self, store, folder: str):
-        users = [{
-            "identifier": u.identifier,
-            "label": u.username,
-            "tip": f"Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
-            "border_color": "#e76f51" if u.is_admin else "#e9c46a",
-            "bg_opacity": 0.0,
-            "shape": "ellipse",
-            "category": "user"
-        } for u in store.users.values()]
+        
+        timeline, detectn, cfdetect = store.get_change_finder()
+
+        i = 0
+        users = []
+        for u in store.users.values():
+            users.append({
+                "identifier": u.identifier,
+                "label": u.username,
+                "tip": f"Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
+                "border_color": "#e76f51" if u.is_admin else "#e9c46a",
+                "bg_opacity": 0.0,
+                "shape": "ellipse",
+                "category": "user",
+                "timeline": timeline[i],
+                "algo_change_finder": cfdetect[u.identifier]
+            })
+            i = i + 1
         
         machines = [{
             "identifier": m.identifier,
