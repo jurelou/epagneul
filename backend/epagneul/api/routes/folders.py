@@ -1,5 +1,5 @@
 from loguru import logger
-from fastapi import Depends, Request, APIRouter, UploadFile, File, HTTPException
+from fastapi import Depends, Request, APIRouter, UploadFile, HTTPException
 import traceback
 
 from epagneul.api.core.neo4j import get_database
@@ -56,11 +56,19 @@ def create_folder(folder_name: str, db = Depends(get_database)):
     print(f"New folder {folder_name}, {new_folder}")
 
 
-def analyze_file(db, folder: str, file_data):
+def analyze_file(db, folder: str, file_data, filename):
     store = parse_evtx(file_data)
+
     db.add_evtx_store(store, folder=folder)
     db.make_lpa(folder)
     db.make_pagerank(folder)
+
+    db.add_folder_file(folder, File(
+        name=filename,
+        start_time=store.start_time,
+        end_time=store.end_time
+    ))
+
 
 @router.post("/{folder_name}/upload")
 async def upload_folder(folder_name: str, request: Request, db = Depends(get_database)):
@@ -71,9 +79,8 @@ async def upload_folder(folder_name: str, request: Request, db = Depends(get_dat
 
     form_files = await request.form()
     for filename, filedata in form_files.items():
-        db.add_folder_file(folder_name, File(name=filename))
         try:
-            analyze_file(db, folder_name, filedata.file)
+            analyze_file(db, folder_name, filedata.file, filename)
         except Exception as err:
             print("ERR while parsing evtx", err)
             print(traceback.format_exc())

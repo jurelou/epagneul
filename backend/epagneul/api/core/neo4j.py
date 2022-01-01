@@ -82,9 +82,21 @@ class DataBase:
             if not folder_data:
                 print(f"FOLDER NOT FOUND {folder_id}")
                 return None
+            files_documents = []
+            start_time = end_time = None
+            for f in files.single().data()["collect(file)"]:
+                file_document = File(**f)
+                if not start_time or file_document.start_time < start_time:
+                    start_time = file_document.start_time
+                if not end_time or file_document.end_time > end_time:
+                    end_time = file_document.end_time
+                files_documents.append(file_document)
+
             return FolderInDB(
                 **folder_data.data()["folder"],
-                files=[File(**f) for f in files.single().data()["collect(file)"]]
+                start_time=start_time,
+                end_time=end_time,
+                files=files_documents
             )
 
     def remove_folder(self, folder_id):
@@ -106,6 +118,7 @@ class DataBase:
                 data=file.dict(),
                 folder_identifier=folder_id
             )
+
     def add_evtx_store(self, store, folder: str):
         
         timeline, detectn, cfdetect = store.get_change_finder()

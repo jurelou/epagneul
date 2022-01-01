@@ -219,9 +219,9 @@ class Datastore:
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
         count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
         count_set = count_set.drop_duplicates()
-
+        print("@@@@@@", self.end_time, self.start_time)
         tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
-
+        print("!!!!!", tohours)
         return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
 
     def add_ml_frame(self, frame):
@@ -565,9 +565,9 @@ if __name__ == "__main__":
     db.bootstrap()
     db.rm()
     
-    store = parse_evtx("/data/filtered2.evtx")
+    #store = parse_evtx("/data/filtered2.evtx")
 
-    print(store.get_change_finder())
+    #a, b, c = store.get_change_finder()
 
     """
     #start_day = datetime.datetime(*store.start_time.timetuple()[:3]).strftime("%Y-%m-%d")
@@ -583,7 +583,7 @@ if __name__ == "__main__":
 
     
     
-
+"""
 if __name__ == "__main__":
     from epagneul.api.core.neo4j import get_database
 
@@ -601,10 +601,8 @@ if __name__ == "__main__":
     #count_set = pd.to_pickle(count_set, "ml_frame.pkl")
 
     tohours = 37# int((store.end_time - store.start_time).total_seconds() / 3600)
-    
-    ml_frame = pd.read_pickle("ml_frame.pkl")
 
-    timelines, detects, detect_cf = adetection(ml_frame, users, datetime.datetime.strptime("2021-12-09", "%Y-%m-%d"), tohours)
+    timelines, detects, detect_cf = adetection(count_set, users, datetime.datetime.strptime("2021-12-09", "%Y-%m-%d"), tohours)
     
     i = 0
     for u in users:
@@ -613,16 +611,14 @@ if __name__ == "__main__":
 
     s = {k: v for k, v in sorted(detect_cf.items(), key=lambda item: item[1])}
     print(s)
-    """
+
     #start_day = datetime.datetime(*store.start_time.timetuple()[:3]).strftime("%Y-%m-%d")
     start_day = datetime.datetime.strptime("2021-12-09", "%Y-%m-%d") #temp
     learn_hmm(ml_frame, users, start_day)
     predictions = predict_hmm(ml_frame, users, start_day)
     print(predictions)
-    """
 
     #db.add_evtx_store(store, folder="a")
     #db.make_lpa("a")
     #db.make_pagerank("a")
-
-    
+"""

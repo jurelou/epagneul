@@ -20,6 +20,7 @@
         </div>
     </q-inner-loading>
 
+    <div id="timeline"></div>
     <div id="cy" />
     
     <q-dialog v-model="infobox" >
@@ -217,15 +218,38 @@ import { makePopper } from './cy/events';
 
 const route = useRoute()
 const $q = useQuasar()
-const tab = ref('files');
-var cy = null;
+const tab = ref('files')
+var cy = null
+
+var timeline_chart = null
 
 onMounted(() => {
   cy = makeCytoscape(folder.value)
+
+    var container = document.getElementById('timeline');
+
+    const cScale = d3.scaleSequential()
+        .interpolator(d3.interpolate('yellow', 'red'))
+        .domain([0,1]);
+
+    timeline_chart = TimelinesChart()(container)
+      //.xTickFormat(n => +n)
+      //.zQualitative(true)
+      //.dateMarker(new Date() - 365 * 24 * 60 * 60 * 1000) // Add a marker 1y ago      
+      .zColorScale(cScale)
+      .zScaleLabel("my skale")
+      .sortChrono(true)
+      //.onZoom(onZoom)
+
 })
 
 const infobox = ref(false)
 const infotab = ref('machines')
+
+///////////////////////////////////////////////////////////////
+// TIMELINE
+///////////////////////////////////////////////////////////////
+
 
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
@@ -266,12 +290,52 @@ function filterMachine (val, update) {
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
+let timeline = []
+
 watch(() => folder, (folder) => {
-  console.log(folder.value)
   let v = folder.value
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value)
   makePopper(cy)
+  console.log(folder.value.start_time)
+  let start_time = new Date(Date.parse(folder.value.start_time))
+  let end_time = new Date(Date.parse(folder.value.end_time))
+  if (!start_time || !end_time) {
+    return
+  }
+  let timerange = []
+  let i = 0
+  while (true) {
+    const date = new Date(start_time.getTime() +  (i*60*60*1000))
+    timerange.push(date)
+    if (date > end_time) { break }
+    i++
+  }
+
+  folder.value.nodes.forEach((node, index) => {
+    if (node.data.category == "user") {
+
+      let node_timeline = []
+      
+      node.data.timeline.forEach((item, index) => {
+        node_timeline.push({
+          timerange: [timerange[index], timerange[index]],
+          val: item
+        })
+      })
+      timeline.push({
+        group: node.data.label,
+        data: [{
+          label: "",
+          data: node_timeline
+        }]
+      })
+
+    }
+  })
+  console.log(timeline)
+  timeline_chart.data(timeline);
+
 }, { deep: true })
 
 ///////////////////////////////////////////////////////////////

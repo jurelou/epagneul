@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Optional
 
 from pydantic import BaseModel, Field
 from datetime import datetime
@@ -36,6 +36,9 @@ class Stats(BaseModel):
 class FolderInDB(BaseModel):
     name: str
     summary: str
+    start_time: Optional[Union[datetime, DateTime]]
+    end_time: Optional[Union[datetime, DateTime]]
+
     timestamp: Union[datetime, DateTime] = Field(default_factory=datetime.now)
     identifier: str = Field(default_factory=lambda : uuid4().hex)
     files: List[File] = []
@@ -46,7 +49,7 @@ class FolderInDB(BaseModel):
     class Config:
         arbitrary_types_allowed = True
         json_encoders = {
-            datetime: lambda date: datetime.strftime(date, "%e/%m/%Y %H:%M:%S"),
-            DateTime: lambda date: datetime.strftime(datetime(date.year, date.month, date.day, date.hour, date.minute, int(date.second), int(date.second * 1000000 % 1000000), tzinfo=date.tzinfo), "%e/%m/%Y %H:%M:%S")
+            datetime: lambda date: datetime.strftime(date, "%Y-%m-%dT%H:%M:%S"),
+            DateTime: lambda date: datetime.strftime(datetime(date.year, date.month, date.day, date.hour, date.minute, int(date.second), int(date.second * 1000000 % 1000000), tzinfo=date.tzinfo), "%Y-%m-%dT%H:%M:%S")
         }
 

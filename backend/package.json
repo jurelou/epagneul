@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "d3-brush": "^3.0.0",
+    "d3-zoom": "^3.0.0"
+  }
+}
