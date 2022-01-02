@@ -7,20 +7,28 @@
 </template>
 
 <script setup>
-import { useFolder } from '../hooks';
 
 import { ref, onMounted, defineProps, watch  } from 'vue';
 import * as d3 from 'd3v4';
 
-const props = defineProps({ timelinedata: Array })
-const { folder, isLoading, refetch, isError } = useFolder(props.timelinedata);
+const props = defineProps({ data: Array })
 
+var lanes = []
+var times = []
+props.data.forEach((d, index) => {
+  lanes.push(d.label)
+  d.times.forEach(time => { time["lane"] = index})
+  times.push(d.times)
+})
+var laneLength = lanes.length;
+var items = [].concat.apply([], times);
+
+
+console.log(props.data)
 var now = Date.now();
-var lanes = [];
-var times = [];
 var w = window.innerWidth
-var real_height = 280
-var h = 500
+var real_height = 800
+var h = (laneLength ) * 16.5
 var m = [25, 150, 15, 105], //top right bottom left
     w = w - m[1] - m[3],
     h = h - m[0] - m[2],
@@ -30,19 +38,10 @@ var m = [25, 150, 15, 105], //top right bottom left
 var chartWidth = w + m[1] + m[3];
 var chartHeight = h + m[0] + m[2];
 
-
-props.timelinedata.forEach((d, index) => {
-  lanes.push(d.label)
-  d.times.forEach(time => { time["lane"] = index})
-  times.push(d.times)
-})
-
-var laneLength = lanes.length;
-var items = [].concat.apply([], times);
 items.forEach((v, index) => { v["id"] = index })
 
-var timeBegin = d3.min(items, function(d) { return d["starting_time"]; });
-var timeEnd = d3.max(items, function(d) { return d["ending_time"]; });
+  var timeBegin = d3.min(items, function(d) { return d["starting_time"]});
+  var timeEnd = d3.max(items, function(d) { return d["ending_time"]});
 
   //scales
 var x = d3.scaleTime()
@@ -64,10 +63,22 @@ var y2 = d3.scaleLinear()
   .range([0, miniHeight])
   .domain([0, laneLength])
 
-var xAxis = d3.axisBottom(x)
-  .ticks(d3.timeMonth)
-  .tickFormat(d=>d3.timeFormat("%Y %B")(d));
+    
+var days = daysBetween(timeBegin,timeEnd);
+      
+var tFormat = "%Y-%B";
+var tTick = 'timeMonth';
+if (days < 7){
+  tFormat = "%Y %B %d";
+  tTick = 'timeDay';
+} else if (days < 35){
+  tFormat = "%Y-%B";
+  tTick = 'timeWeek';
+}
   
+var xAxis = d3.axisBottom(x)
+      .ticks(d3[tTick])
+      .tickFormat(d=>d3.timeFormat(tFormat)(d))  
 var xAxisTop = d3.axisBottom(xTop)
 	.ticks(d3.timeDay)
   .tickFormat(d=>d3.timeFormat("%Y-%m-%d")(d));
@@ -95,20 +106,19 @@ const cScale = d3.scaleSequential()
   .domain([0,1]);
 
 onMounted(() => {
-  console.log("MOUNT", props.data)
   // functions
   function drawBrush(minExtent, maxExtent) {
-    var visItems = items.filter(function(d) {return d.starting_time <  maxExtent && d.ending_time > minExtent;});
+    var visItems = items.filter(function(d) {return d.starting_time <=  maxExtent && d.ending_time >= minExtent });
     var toolTipDateFormat = d3.timeFormat("%Y-%m");  
     var days = daysBetween(minExtent,maxExtent);
       
     var tFormat = "%Y-%B";
     var tTick = 'timeMonth';
     if (days < 3){
-      tFormat = "%H";
+      tFormat = "%Hh";
       tTick = 'timeHour';
     } else if (days < 7){
-      tFormat = "%a %H";
+      tFormat = "%a %Hh";
       tTick = 'timeDay';
     } else if (days < 35){
       tFormat = "%Y-%B";
@@ -117,7 +127,7 @@ onMounted(() => {
 
     var xAxisTop2 = d3.axisBottom(xTop)
       .ticks(d3[tTick])
-      .tickFormat(d=>d3.timeFormat(tFormat)(d));
+      .tickFormat(d=>d3.timeFormat(tFormat)(d))
   
 
     x1.domain([minExtent, maxExtent])
@@ -130,28 +140,27 @@ onMounted(() => {
 
     //update main item rects
     var rects = itemRects.selectAll("rect")
-      .data(visItems, function(d) { return d.id; })
-      .attr("x", function(d) {return x1(d.starting_time);})
-      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time);});
+      .data(visItems, function(d) { return d.id })
+      .attr("x", function(d) {return x1(d.starting_time) })
+      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time) });
 
     rects.enter().append("rect")
       .attr("class", function(d) {return "miniItem "+d.state;})
       .attr("fill", function(d) {return cScale(d.value)})
       .attr("x", function(d) {return x1(d.starting_time)})
-      .attr("y", function(d) {return y1(d.lane+0.1);})
-      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time);})
-      .attr("height", function(d) {return y1(1-2* 0.1);})
+      .attr("y", function(d) {return d.lane * 15 })
+      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time) })
+      .attr("height", 14)
 
     rects.exit().remove();
   }
 
   function brushed() {
-      var selection = d3.event.selection;
-      var timeSelection = selection.map(x.invert, x);
-
-      var minExtent = timeSelection[0];
-      var maxExtent = timeSelection[1];  
-      drawBrush(minExtent, maxExtent);
+      var selection = d3.event.selection
+      var timeSelection = selection.map(x.invert, x)
+      var minExtent = timeSelection[0]
+      var maxExtent = timeSelection[1]
+      drawBrush(minExtent, maxExtent)
 
   }
 
@@ -179,18 +188,18 @@ onMounted(() => {
     .attr("width", chartWidth)
     .attr("height", 100)
     .append("g")
-    .attr("class", "footer");
+    .attr("class", "footer")
 
   var mini = footer.append("g")
     .attr("transform", "translate(150,10)")
     .attr("width", 150)
     .attr("height", 100)
-    .attr("class", "mini");
+    .attr("class", "mini")
 
   var gX = footer.append("g")
     .attr("class", "base axis botAxis")
     .attr("transform", "translate(150,10)")
-    .call(xAxis);
+    .call(xAxis)
 
 
   //////////////////////////////////////////////////////
@@ -201,10 +210,10 @@ onMounted(() => {
     .append("svg")
     .attr("width", chartWidth)
     .attr("height", chartHeight)
-    .attr("viewBox", "0 0 " + chartWidth + " " + chartHeight)
-    .attr("preserveAspectRatio", "xMidYMid meet")
+    //.attr("viewBox", "0 0 " + chartWidth + " " + chartHeight)
+    //.attr("preserveAspectRatio", "xMidYMid meet")
     .append("g")
-    .attr("class", "timelinechartg");
+    .attr("class", "timelinechartg")
 
   chart.append("defs").append("clipPath")
     .attr("id", "clip")
@@ -233,10 +242,10 @@ onMounted(() => {
     .selectAll(".laneLines")
     .data(items)
     .enter().append("line")
-    .attr("x1", 0)
-    .attr("y1", function(d) {return y1(d.lane);})
+    .attr("x1", -100)
+    .attr("y1", function(d) {return d.lane * 15 })
     .attr("x2", w)
-    .attr("y2", function(d) {return y1(d.lane);})
+    .attr("y2", function(d) {return d.lane * 15 })
 
   main.append("g")
     .attr("class", "core-labels")
@@ -246,10 +255,11 @@ onMounted(() => {
     .text(function(d) {return d;})
     .attr("x", (-10))
     .attr("y", function(d, i) {
-      return y1(i + .5);
+      return (i * 15) + 7.5;
     })
     .attr("dy", ".5ex")
     .attr("class", "laneText");
+
 
   var itemRects = main.append("g")
     .attr("clip-path", "url(#clip)");
@@ -257,6 +267,7 @@ onMounted(() => {
   var currentLine = main.append('line')
     .attr('class', "currentLine")
     .attr("clip-path", "url(#clip)");
+
 
   var brush = d3.brushX()
     .extent([[0, 0], [w, miniHeight]])
@@ -267,15 +278,20 @@ onMounted(() => {
     .call(brush)
     //.selectAll("rect")
     //.attr("y", 1)
-    //.attr("height", miniHeight - 1)    
+    //.attr("height", miniHeight - 1)
     .call(brush.move, x1.range());
+  
 })
 </script>
 <style>
 
+#timeline_footer, #timeline_header {
+  overflow: hidden;
+}
+
 #timeline {
   background-color: transparent;
-  overflow-y: scroll;
+  overflow-y: auto;
   overflow-x: hidden;
   height: 300px;
 }
@@ -295,11 +311,11 @@ onMounted(() => {
 
 .core-chart line {
   stroke: grey;
+  height: 100;
 }
 
 .core-labels text {
   text-anchor: end;
-  fill: blue;
 }
 
 .domain, .tick line{

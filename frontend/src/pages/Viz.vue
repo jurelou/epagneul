@@ -1,5 +1,11 @@
 <template>
   <q-page >
+
+    <div id="timeline_header" />
+    <div id="timeline" />
+    <div id="timeline_footer" />
+  
+
     <div class="q-pa-md q-gutter-sm">
       <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" :label="'Summary for ' + folder.name" @click="infobox = true"/>
     </div>
@@ -226,8 +232,8 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-import { toto } from './timeline/timeline';
-console.log("AAA", toto)
+import { make_timeline } from './timeline/timeline';
+
 let timeline_data = []
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
@@ -309,6 +315,8 @@ watch(() => folder, (folder) => {
 
     }
   })
+make_timeline(timeline_data)
+
 }, { deep: true })
 
 ///////////////////////////////////////////////////////////////
@@ -420,5 +428,50 @@ function failed_upload_file(info) {
 			.cxtmenu-disabled {
 				opacity: 0.333;
 			}
+  /*
+  TIMELINE
+  */
+#timeline {
+  background-color: transparent;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  height: 400px;
+}
+
+.footer {
+  fill: blue;
+}
+
+.mini {
+  fill: pink;
+}
+
+.main {
+  background-color: blue;
+  fill: blue;
+}
+
+.core-chart line {
+  stroke: grey;
+}
+
+.core-labels text {
+  text-anchor: end;
+  fill: blue;
+}
+
+.domain, .tick line{
+  /*fill: blue; */
+  stroke: #20C20E;
+}
+
+.tick text{
+  fill: red; 
+}
+
+.selection {
+  fill: #20C20E !important;
+
+}
 
 </style>
