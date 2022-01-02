@@ -23715,134 +23715,135 @@ import Timeline from 'components/Timeline.vue'
       "label": "Argentina",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-01-14T15:20:00Z'), "ending_time": Date.parse('2020-05-30T03:59:00Z')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-01-14T15:20:00Z'), "ending_time": Date.parse('2020-01-16T03:59:00Z')},
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-05-14T15:20:00Z'), "ending_time": Date.parse('2020-05-30T03:59:00Z')}
       ]
     },
     {
       "label": "Bolivia",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time":Date.parse('2020-01-17T03:24:00'), "ending_time": Date.parse('2020-06-28T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time":Date.parse('2020-01-17T03:24:00'), "ending_time": Date.parse('2020-06-28T03:24:00')}
       ]
     },
     {
       "label": "Brazil",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-01-20T03:24:00'), "ending_time": Date.parse('2020-02-17T03:24:00')}
+        {"value": 0.9, "text": "", "starting_time": Date.parse('2020-01-20T03:24:00'), "ending_time": Date.parse('2020-02-17T03:24:00')}
       ]
     },
     {
       "label": "Canada",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-02-20T03:24:00'), "ending_time": Date.parse('2020-04-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-02-20T03:24:00'), "ending_time": Date.parse('2020-04-20T03:24:00')}
       ]
     },
     {
       "label": "Chile",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Colombia",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Costa Rica",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Ecuador",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.0, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "El Salvador",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.9, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Guatemala",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Honduras",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Mexico",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Nicaragua",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Panama",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Paraguay",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.1, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Peru",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "United States of America",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-01-14T15:20:00Z'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.5, "text": "", "starting_time": Date.parse('2020-01-14T15:20:00Z'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     },
     {
       "label": "Uruguay",
       "isIncluded": true,
       "times": [
-        {"text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
+        {"value": 0.4, "text": "", "starting_time": Date.parse('2020-03-10T03:24:00'), "ending_time": Date.parse('2020-05-20T03:24:00')}
       ]
     }
   ]
 
 
 function toDays(d) {
- d = d || 0;
- return d / 24 / 60 / 60 / 1000;
+   d = d || 0;
+   return d / 24 / 60 / 60 / 1000;
 }
 
 function toUTC(d) {
@@ -23854,7 +23855,7 @@ function toUTC(d) {
 
 
 function daysBetween(d1,d2){
- return toDays(toUTC(d2)-toUTC(d1));
+   return toDays(toUTC(d2)-toUTC(d1));
 }
 
     
@@ -23866,6 +23867,7 @@ function daysBetween(d1,d2){
 
 // https://jsfiddle.net/m6ueL79o/3/
 onMounted(() => {
+   return
   function brushed() {
     var selection = d3.event.selection;
     var timeSelection = selection.map(x.invert, x);
@@ -23876,66 +23878,12 @@ onMounted(() => {
 	drawBrush(minExtent, maxExtent);
 
   }
-function drawBrush(minExtent, maxExtent) {
 
-    var visItems = items.filter(function(d) {return d.starting_time <  maxExtent && d.ending_time > minExtent;});
-    
-    
-    var toolTipDateFormat = d3.timeFormat("%Y-%m");
-    
-    
-     var days = daysBetween(minExtent,maxExtent);
-    
-    var tFormat = "%Y-%m";
-    var tTick = 'timeMonth';
-    if(days < 40){
-    	tFormat = "%Y-%m-%d";
-      tTick = 'timeWeek';
-    }
-    
-    var xAxisTop2 = d3.axisBottom(xTop)
-	.ticks(d3[tTick])
-  .tickFormat(d=>d3.timeFormat(tFormat)(d));
- 
 
-    x1.domain([minExtent, maxExtent]);
-    xTop.domain([minExtent, maxExtent]);
-    gXTop.call(xAxisTop2);
-    gXTop.selectAll('.tick text');
-    
-    
-    currentLine.attr("x1", x1(now)).attr("x2", x1(now)).attr("y1", 0).attr("y2", mainHeight);
 
-    //update main item rects
-   var rects = itemRects.selectAll("rect")
-      .data(visItems, function(d) { return d.id; })
-      .attr("x", function(d) {return x1(d.starting_time);})
-      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time);});
 
-    rects.enter().append("rect")
-      .attr("class", function(d) {return "miniItem "+d.state;})
-      .attr("fill", "#20C20E")
-      .attr("x", function(d) {return x1(d.starting_time);})
-      .attr("y", function(d) {return y1(d.lane+0.1);})
-      .attr("width", function(d) {return x1(d.ending_time) - x1(d.starting_time);})
-      .attr("height", function(d) {return y1(1-2* 0.1);})
-      .on("mouseover", function(d) {
-       div.transition()
-         .duration(200)
-         .style("opacity", .9);
-       div.html("Start Time " + toolTipDateFormat(d.starting_time) + "<br>" + "End Time " + toolTipDateFormat(d.ending_time))
-         .style("left", (d3.event.pageX) + "px")
-         .style("top", (d3.event.pageY - 28) + "px");
-       })
-     .on("mouseout", function(d) {
-       div.transition()
-         .duration(500)
-         .style("opacity", 0);
-       });
 
-    rects.exit().remove();
-    
-}
+
   var w = 500
   var h = 500
   var m = [25, 150, 15, 105], //top right bottom left
@@ -24101,16 +24049,11 @@ function drawBrush(minExtent, maxExtent) {
 
 <template>
     <q-page>
-    <Timeline :data="data"/>
-    <div id="timeline" />
+      <Timeline :data="data"/>
     </q-page>
 </template>
 
 <style>
-
-#holder {
-  overflow: hidden;
-}
 
 /*
 .chart {

@@ -244,7 +244,7 @@ class Datastore:
             machine.identifier = f"computer-{machine.hostname}"
         else:
             return None
-
+        
         if machine.identifier not in self.machines:
             self.machines[machine.identifier] = machine
         elif machine.ip and machine.hostname:

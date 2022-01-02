@@ -40,6 +40,8 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 ## Known bugs
 
 - [ ] When multiple files are uploaded, properties will be overwritten
+- [ ] Duplicate machine nodes (maybe also users)
+- [ ] Zoom on a given user is buggy
 
 ## References:
 

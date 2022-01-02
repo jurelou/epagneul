@@ -23,6 +23,7 @@
     "cytoscape-popper": "^2.0.0",
     "cytoscape-view-utilities": "^6.0.0",
     "d3-brush": "^3.0.0",
+    "d3-scale-chromatic": "^3.0.0",
     "d3-timeline": "^1.0.1",
     "d3v4": "^4.2.2",
     "pinia": "^2.0.6",

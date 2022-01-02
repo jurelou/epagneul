@@ -173,16 +173,13 @@
                       outlined
                       :options="available_machines_ref"
                       v-model="selected_machine"
-                      label="Search for a machine"
+                      label="Search for a user"
                       input-debounce="0"
                       transition-show="scale"
                       transition-hide="scale"
                       @update:model-value="zoomNode"
                       @filter="filterMachine"
                     >
-                      <template v-slot:prepend>
-                        <q-icon name="computer" />
-                      </template>
                       <template v-slot:no-option>
                         <q-item>
                           <q-item-section class="text-grey">
@@ -193,12 +190,7 @@
                     </q-select>                  
                   </q-card-section>
                 </q-card>
-
-
-
               </q-expansion-item>
-
-
             </q-list>
           </q-tab-panel>
         </q-tab-panels>
@@ -226,21 +218,6 @@ var timeline_chart = null
 onMounted(() => {
   cy = makeCytoscape(folder.value)
 
-    var container = document.getElementById('timeline');
-
-    const cScale = d3.scaleSequential()
-        .interpolator(d3.interpolate('yellow', 'red'))
-        .domain([0,1]);
-
-    timeline_chart = TimelinesChart()(container)
-      //.xTickFormat(n => +n)
-      //.zQualitative(true)
-      //.dateMarker(new Date() - 365 * 24 * 60 * 60 * 1000) // Add a marker 1y ago      
-      .zColorScale(cScale)
-      .zScaleLabel("my skale")
-      .sortChrono(true)
-      //.onZoom(onZoom)
-
 })
 
 const infobox = ref(false)
@@ -249,13 +226,15 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-
-
+import { toto } from './timeline/timeline';
+console.log("AAA", toto)
+let timeline_data = []
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
 ///////////////////////////////////////////////////////////////
 const selected_machine = ref()
-const available_machines = ['administrator', 'tpignol',  'tdasse']
+
+let available_machines = []
 const available_machines_ref = ref(available_machines)
 
 function zoomNode(node_label) {
@@ -290,14 +269,13 @@ function filterMachine (val, update) {
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
-let timeline = []
-
+console.log(folder.value)
 watch(() => folder, (folder) => {
   let v = folder.value
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value)
   makePopper(cy)
-  console.log(folder.value.start_time)
+
   let start_time = new Date(Date.parse(folder.value.start_time))
   let end_time = new Date(Date.parse(folder.value.end_time))
   if (!start_time || !end_time) {
@@ -311,31 +289,26 @@ watch(() => folder, (folder) => {
     if (date > end_time) { break }
     i++
   }
-
   folder.value.nodes.forEach((node, index) => {
     if (node.data.category == "user") {
-
+      available_machines.push(node.data.label)
       let node_timeline = []
       
       node.data.timeline.forEach((item, index) => {
         node_timeline.push({
-          timerange: [timerange[index], timerange[index]],
-          val: item
+          value: item,
+          starting_time: timerange[index],
+          ending_time: timerange[index + 1],
         })
       })
-      timeline.push({
-        group: node.data.label,
-        data: [{
-          label: "",
-          data: node_timeline
-        }]
+      timeline_data.push({
+        label: node.data.label,
+          isIncluded: true,
+          times: node_timeline
       })
 
     }
   })
-  console.log(timeline)
-  timeline_chart.data(timeline);
-
 }, { deep: true })
 
 ///////////////////////////////////////////////////////////////
