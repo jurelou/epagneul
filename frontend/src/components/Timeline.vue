@@ -3,7 +3,6 @@
     <div id="timeline_header" />
     <div id="timeline" />
     <div id="timeline_footer" />
-
 </template>
 
 <script setup>
@@ -15,6 +14,7 @@ const props = defineProps({ data: Array })
 
 var lanes = []
 var times = []
+
 props.data.forEach((d, index) => {
   lanes.push(d.label)
   d.times.forEach(time => { time["lane"] = index})
@@ -27,7 +27,6 @@ var items = [].concat.apply([], times);
 console.log(props.data)
 var now = Date.now();
 var w = window.innerWidth
-var real_height = 800
 var h = (laneLength ) * 16.5
 var m = [25, 150, 15, 105], //top right bottom left
     w = w - m[1] - m[3],
@@ -78,7 +77,8 @@ if (days < 7){
   
 var xAxis = d3.axisBottom(x)
       .ticks(d3[tTick])
-      .tickFormat(d=>d3.timeFormat(tFormat)(d))  
+      .tickFormat(d=>d3.timeFormat(tFormat)(d))
+
 var xAxisTop = d3.axisBottom(xTop)
 	.ticks(d3.timeDay)
   .tickFormat(d=>d3.timeFormat("%Y-%m-%d")(d));
@@ -206,6 +206,7 @@ onMounted(() => {
   // TIMELINE
   //////////////////////////////////////////////////////
 
+
   var chart = d3.select("#timeline")
     .append("svg")
     .attr("width", chartWidth)
@@ -221,7 +222,7 @@ onMounted(() => {
     .attr("width", w)
     .attr("height", mainHeight);
 
-  
+
   var main = chart
     .append("g")
     .attr("transform", "translate(" + m[3] + "," + 0 + ")")
@@ -229,11 +230,12 @@ onMounted(() => {
     .attr("height", 100)
     .attr("class", "main");
 
-  
+  /*
   var div = d3.select("body").append("div")
     .attr("class", "tooltip")
     .style("opacity", 0);
-    
+  */
+       
   var defs = main.append('svg:defs');  
 
   //main lanes and texts
@@ -246,7 +248,6 @@ onMounted(() => {
     .attr("y1", function(d) {return d.lane * 15 })
     .attr("x2", w)
     .attr("y2", function(d) {return d.lane * 15 })
-
   main.append("g")
     .attr("class", "core-labels")
     .selectAll(".laneText")
@@ -261,6 +262,7 @@ onMounted(() => {
     .attr("class", "laneText");
 
 
+
   var itemRects = main.append("g")
     .attr("clip-path", "url(#clip)");
 
@@ -268,11 +270,9 @@ onMounted(() => {
     .attr('class', "currentLine")
     .attr("clip-path", "url(#clip)");
 
-
   var brush = d3.brushX()
     .extent([[0, 0], [w, miniHeight]])
     .on("brush", brushed);
-
   var gBrush = mini.append("g")
     .attr("class", "x brush")
     .call(brush)
@@ -291,7 +291,7 @@ onMounted(() => {
 
 #timeline {
   background-color: transparent;
-  overflow-y: auto;
+  overflow-y: scroll;
   overflow-x: hidden;
   height: 300px;
 }
