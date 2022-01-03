@@ -106,14 +106,22 @@ class Machine(NonEmptyValuesModel):
     identifier : str = ""
 
     hostname: str = ""
+
     ip: str = ""
+    ips: set = set()
+
     domain: str = ""
+
+    def add_ip(self, ip: str):
+        if not ip or ip in ("::1", "127.0.0.1"):
+            return None
+        self.ips.add(ip)
 
     @validator("ip")
     def validate_ip(cls, value):
-        if value in ("::1", "127.0.0.1"):
+        if not value or value in ("::1", "127.0.0.1"):
             return ""
-        return value or ""
+        return value
 
 
     @validator("hostname", "domain")
@@ -138,7 +146,7 @@ class User(NonEmptyValuesModel):
 
     @validator("sid")
     def validate_sid(cls, value):
-        if value and value == "S-1-5-7": # skip Anonymous Logon	
+        if value and value in ("S-1-0-0", "S-1-5-7"): # skip Anonymous Logon
             return ""
         return value
 
@@ -170,6 +178,25 @@ HCHECK = r"[*\\/|:\"<>?&]"
 
 USEFULL_EVENTS_STR = re.compile(r'<EventID>(4624|4625|4648|4768|4769|4771|4776|4672)', re.MULTILINE)
 
+
+KNOWN_ADMIN_SIDS = {
+    "S-1-5-18": "System (or LocalSystem)",
+    "S-1-5-19": "NT Authority (LocalService)",
+    "S-1-5-20": "Network Service",
+    "S-1-5-32-544": "Administrator",
+    "S-1-5-32-547": "Power User",
+}
+
+KNOWN_ADMIN_SIDS_ENDINGS = {
+    "-500": "Domain local administrator",
+    "-502": "krbtgt",
+    "-512": "Domain Admin",
+    "-517": "Cert Publisher",
+    "-518": "Schema Admin",
+    "-519": "Enterprise Admin",
+    "-520": "Group Policy Creator Owner"
+}
+
 def to_lxml(record_xml):
     rep_xml = record_xml.replace("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "")
     fin_xml = rep_xml.encode("utf-8")
@@ -192,6 +219,57 @@ def get_event_from_xml(raw_xml_event):
         data=xml_event.xpath("/Event/EventData/Data")
     )
 
+def merge_models(a, b):
+    #print(f"merge {a} with {b}")
+    for b_field in b.__fields__:
+        b_field_value = getattr(b, b_field)
+        if not b_field_value:
+            continue
+        a_field_value = getattr(a, b_field)
+        
+        if a_field_value == b_field_value:
+            continue
+        try:
+            if a_field_value in b_field_value:
+                # a is a subset of b
+                setattr(a, b_field, b_field_value)
+            continue
+        except TypeError:
+            pass
+        
+        if a_field_value:
+            print(f"DOUBLE VALUE ({b_field}) {a_field_value} -- {b_field_value}")
+        else:
+            setattr(a, b_field, b_field_value)
+    return a
+
+    """
+    b_dict = b.dict()
+    keys = a.dict().keys()
+    for key in keys:
+        a_value = getattr(a, key, None)
+        b_value = getattr(b, key)
+            if not a_value:
+                #print(f"SET a key {key} to {b_value} from {a_value}")
+                a.__setattr__(key, b_value)
+            elif a_value and b_value and (a_value != b_value):
+                print(f"!!!!!!!STRANGE != values for {key} a: {a} b: {b}")
+        return a
+    """
+def get_role_from_sid(user):
+    if not user.sid:
+        return False, None
+    
+    for sid, role in KNOWN_ADMIN_SIDS.items():
+        if sid == user.sid:
+            return True, role
+
+    for sid, role in KNOWN_ADMIN_SIDS_ENDINGS.items():
+        if user.sid.endswith(sid):
+            return True, role
+
+    return False, None
+
 class Datastore:
     def __init__(self):
         self.machines = {}
@@ -203,6 +281,18 @@ class Datastore:
 
         self.start_time = None
         self.end_time = None
+
+    def finalize(self):
+        
+        # Remove duplicate machines
+        known_machines = [ machine for machine in self.machines.values() if machine.hostname]
+        for machine in self.machines.values():
+            if machine.hostname:
+                continue
+            if not any(machine.ip in km.ips for km in known_machines):
+                known_machines.append(machine)
+        self.machines = known_machines
+
 
     def add_timestamp(self, timestamp):
         if not self.start_time:
@@ -219,9 +309,7 @@ class Datastore:
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
         count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
         count_set = count_set.drop_duplicates()
-        print("@@@@@@", self.end_time, self.start_time)
         tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
-        print("!!!!!", tohours)
         return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
 
     def add_ml_frame(self, frame):
@@ -230,7 +318,6 @@ class Datastore:
 
     def add_logon_event(self, event):
         event.identifier = f"{event.event_id}-{event.source}-{event.target}"
-
         if event.identifier in self.logon_events:
             self.logon_events[event.identifier].count = self.logon_events[event.identifier].count + 1
         else:
@@ -238,70 +325,71 @@ class Datastore:
         return event.identifier
 
     def add_machine(self, machine: Machine):
-        if machine.ip:
-            machine.identifier = machine.ip
-        elif machine.hostname:
-            machine.identifier = f"computer-{machine.hostname}"
+        for m, mdata in self.machines.items():
+            if machine.hostname and machine.hostname == mdata.hostname:
+                machine.identifier = mdata.identifier
+                break
+            elif machine.ip in mdata.ips:
+                machine.identifier = mdata.identifier
+
+        if machine.identifier:
+            self.machines[machine.identifier].add_ip(machine.ip)
+            if not self.machines[machine.identifier].hostname:
+                self.machines[machine.identifier].hostname = machine.hostname
         else:
-            return None
-        
-        if machine.identifier not in self.machines:
+            if machine.hostname:
+                machine.identifier = machine.hostname
+            elif machine.ip:
+                machine.identifier = machine.ip
+            else:
+                return None
+
             self.machines[machine.identifier] = machine
-        elif machine.ip and machine.hostname:
+            self.machines[machine.identifier].add_ip(machine.ip)
+
+        return machine.identifier
+        """
+        return
+        if machine.ip and machine.hostname:
             if not self.machines[machine.ip].hostname:
                 self.machines[machine.ip].hostname = machine.hostname            
             elif machine.hostname != self.machines[machine.ip].hostname:
                 print(f"/!\ 2 hostnames for {machine.ip}: {machine.hostname} && {self.machines[machine.ip].hostname}")
         return machine.identifier
+        """
 
     def add_user(self, user: User):
-        if not user.sid:
+        if user.sid:
+            # SID
+            if user.sid.count("-") != 3:
+                user.identifier = user.sid
+            else:
+                user.identifier = user.username
+        elif user.username:
+            # username
+            for u, udata in self.users.items():
+                if udata.username == user.username:
+                    user.identifier = udata.identifier
+                    break
+            if not user.identifier:
+                return None
+        else:
+            # no sid, no username
             return None
 
-        is_unique_sid = user.sid.count("-") != 3
-        user.identifier = user.sid if is_unique_sid else user.username
+
         if user.identifier not in self.users:
             self.users[user.identifier] = user
+            return user.identifier
 
-        if user.sid == "S-1-5-18":
-            self.users[user.identifier].is_admin = True
-            self.users[user.identifier].role = "System (or LocalSystem)"
-        elif user.sid == "S-1-5-19":
-            self.users[user.identifier].is_admin = True
-            self.users[user.identifier].role = "NT Authority (LocalService)"
-        elif user.sid == "S-1-5-20":
-            self.users[user.identifier].is_admin = True
-            self.users[user.identifier].role = "Network Service"
-        elif user.sid == "S-1-5-32-544":
-            self.users[user.identifier].is_admin = True
-            self.users[user.identifier].role = "Administrator"
-        elif user.sid == "S-1-5-32-547":
-            self.users[user.identifier].is_admin = True
-            self.users[user.identifier].role = "Power User"
+        
+        user = merge_models(self.users[user.identifier], user)
+        if not user.sid:
+            self.users[user.identifier] = user
+            return user.identifier
 
-        elif is_unique_sid:
-            user_sid_suffix = user.sid[-4:]
-            if user_sid_suffix == "-500":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Domain local administrator"
-            elif user_sid_suffix == "-502":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "krbtgt"
-            elif user_sid_suffix == "-512":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Domain Admin"
-            elif user_sid_suffix == "-517":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Cert Publisher"
-            elif user_sid_suffix == "-518":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Schema Admin"
-            elif user_sid_suffix == "-519":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Enterprise Admin"
-            elif user_sid_suffix == "-520":
-                self.users[user.identifier].is_admin = True
-                self.users[user.identifier].role = "Group Policy Creator Owner"
+        user.is_admin, user.role = get_role_from_sid(user)
+        self.users[user.identifier] = user
         return user.identifier
 
 def parse_evtx(file_data):
@@ -565,7 +653,11 @@ if __name__ == "__main__":
     db.bootstrap()
     db.rm()
     
-    #store = parse_evtx("/data/filtered2.evtx")
+    store = parse_evtx("/data/filtered.evtx")
+    for v in sorted(store.machines.values(), key=lambda x: x.hostname):
+        print("!!!!!",  v.hostname, v)
+    
+    store.finalize()
 
     #a, b, c = store.get_change_finder()
 
