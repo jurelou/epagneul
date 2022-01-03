@@ -58,6 +58,7 @@ def create_folder(folder_name: str, db = Depends(get_database)):
 
 def analyze_file(db, folder: str, file_data, filename):
     store = parse_evtx(file_data)
+    store.finalize()
 
     db.add_evtx_store(store, folder=folder)
     db.make_lpa(folder)

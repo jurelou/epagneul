@@ -232,7 +232,7 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-import { make_timeline } from './timeline/timeline';
+//import { make_timeline } from './timeline/timeline';
 
 let timeline_data = []
 ///////////////////////////////////////////////////////////////
@@ -275,18 +275,19 @@ function filterMachine (val, update) {
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
-console.log(folder.value)
 watch(() => folder, (folder) => {
   let v = folder.value
+  console.log("=====", v)
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value)
   makePopper(cy)
 
+
+
   let start_time = new Date(Date.parse(folder.value.start_time))
   let end_time = new Date(Date.parse(folder.value.end_time))
-  if (!start_time || !end_time) {
-    return
-  }
+  return
+
   let timerange = []
   let i = 0
   while (true) {
@@ -315,7 +316,7 @@ watch(() => folder, (folder) => {
 
     }
   })
-make_timeline(timeline_data)
+//make_timeline(timeline_data)
 
 }, { deep: true })
 

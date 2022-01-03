@@ -8,14 +8,17 @@ class EdgeData(BaseModel):
     source: str
     target: str
     label: str
+    tip: str
+    timestamp: float
     id: str = Field(default_factory=lambda : uuid4().hex)
+    
 
 class Edge(BaseModel):
     data: EdgeData
 
 
 class NodeData(BaseModel):
-    id: str = Field(default_factory=lambda : uuid4().hex)
+    id: str
     category: str
 
     label: str = ""

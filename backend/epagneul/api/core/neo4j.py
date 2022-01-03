@@ -1,5 +1,6 @@
 from neo4j import GraphDatabase
 from epagneul.common import settings
+from datetime import datetime
 
 from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.files import File
@@ -24,11 +25,13 @@ class DataBase:
         nodes = {}
         edges = []
 
+
         def  _get_or_add_node(node):
+            print(node["identifier"])
             if node["identifier"] in nodes:
                 return nodes[node["identifier"]].data.id
 
-            new_node = Node(data=NodeData(**node))
+            new_node = Node(data=NodeData(**node, id=node["identifier"]))
             new_node.data.width = 10 + (len(new_node.data.label) * 11)
 
             compound_id = f"compound-{node['algo_lpa']}"
@@ -45,6 +48,7 @@ class DataBase:
                 "return source, PROPERTIES(rel) as rel, target",
                 folder=folder
             )
+            print("!!!!")
             for item in res:
                 source_id = _get_or_add_node(item["source"])
                 target_id = _get_or_add_node(item["target"])
@@ -82,6 +86,7 @@ class DataBase:
             if not folder_data:
                 print(f"FOLDER NOT FOUND {folder_id}")
                 return None
+
             files_documents = []
             start_time = end_time = None
             for f in files.single().data()["collect(file)"]:
@@ -127,36 +132,35 @@ class DataBase:
         users = []
         for u in store.users.values():
             users.append({
-                "identifier": u.identifier,
+                "identifier": f"user-{u.identifier}",
                 "label": u.username,
-                "tip": f"Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
+                "tip": f"id: {u.identifier}<br>Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
                 "border_color": "#e76f51" if u.is_admin else "#e9c46a",
                 "bg_opacity": 0.0,
                 "shape": "ellipse",
                 "category": "user",
                 "timeline": timeline[i],
-                "algo_change_finder": cfdetect[u.identifier]
+                "algo_change_finder": cfdetect[u.identifier],
             })
             i = i + 1
         
         machines = [{
-            "identifier": m.identifier,
+            "identifier": f"machine-{m.identifier}",
             "label": m.hostname or m.ip,
-            "tip": f"Hostname: {m.hostname}<br>IP: {m.ip}",
+            "tip": f"id: {m.identifier}<br>Hostname: {m.hostname}<br>IP: {m.ip}",
             "border_color": "#2a9d8f",
             "bg_opacity": 0.0,
             "shape": "rectangle",
             "category": "machine"
-        } for m in store.machines.values()]
+        } for m in store.machines.values() ]
 
         events = [{
-            "identifier": e.identifier,
-            "source": e.source,
-            "target": e.target,
+            "source": f"user-{e.source}",
+            "target": f"machine-{e.target}",
             "label": e.event_id,
-            "count": e.count,
-            "tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Count: {e.count}<br>Timestamp: {e.timestamp}",
-        } for e in store.logon_events.values()]
+            "timestamp": datetime.timestamp(e.timestamp),
+            "tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
+        } for e in store.logon_events ]
 
 
         with self._driver.session() as session:
