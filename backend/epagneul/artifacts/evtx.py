@@ -296,11 +296,12 @@ class Datastore:
 
 
         self.users = known_users
+        """
         for v in sorted(self.users.values(), key=lambda x: x.username):
             print("UUU",  v.identifier, v)
         for v in sorted(self.machines.values(), key=lambda x: x.hostname):
             print("MMM",  v.identifier, v)
-
+        """
         for event in self.logon_events:
             if event.target not in self.machines:
                 for m in self.machines.values():
@@ -544,9 +545,9 @@ if __name__ == "__main__":
     db.bootstrap()
     db.rm()
     
-    #store = parse_evtx("/data/filtered2.evtx")
+    store = parse_evtx("/data/filtered2.evtx")
 
-    #store.finalize()
+    store.finalize()
 
     #a, b, c = store.get_change_finder()
 
@@ -557,8 +558,8 @@ if __name__ == "__main__":
     predictions = predict_hmm(ml_frame, users, start_day)
     print(predictions)
     """
+    db.add_evtx_store(store, folder="a")
 
-    #db.add_evtx_store(store, folder="a")
     #db.make_lpa("a")
     #db.make_pagerank("a")
 

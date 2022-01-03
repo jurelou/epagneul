@@ -50,7 +50,7 @@ function add_new_folder() {
     />
 
     <p v-if="folders && folders.length == 0">You dont have any folders yet !</p>
-    <q-list style="rounded-borders" v-else>
+    <q-list style="rounded-borders; overflow-y: auto;" v-else>
       <q-item-label header>My folders</q-item-label>
       <p v-for="(folder, index) of folders" :key="folder.name" @click="router.push({path: `/v/${folder.identifier}`})">
         <q-item v-ripple  >

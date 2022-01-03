@@ -6,12 +6,22 @@ from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.files import File
 from epagneul.models.graph import Edge, Node, EdgeData, NodeData
 
+
+def chunker(seq, size):
+    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+
+
 class DataBase:
     def __init__(self):
         self._driver = GraphDatabase.driver(settings.neo4j.endpoint, auth=(settings.neo4j.username, settings.neo4j.password))
 
     def bootstrap(self):
         print("bootstrap db")
+        """
+        with self._driver.session() as session:
+            session.run("CREATE CONSTRAINT machine_id ON (n:Machine) ASSERT n.identifier IS UNIQUE")
+            session.run("CREATE CONSTRAINT user_id ON (n:User) ASSERT n.identifier IS UNIQUE")
+        """
 
     def close(self):
         self._driver.close()
@@ -105,7 +115,6 @@ class DataBase:
             )
 
     def remove_folder(self, folder_id):
-        print("!!!!", folder_id)
         with self._driver.session() as session:
             result = session.run(
                 "MATCH (folder: Folder {identifier: $identifier}) DETACH DELETE folder",
@@ -125,7 +134,7 @@ class DataBase:
             )
 
     def add_evtx_store(self, store, folder: str):
-        
+        print("ADD STORE NOW")
         timeline, detectn, cfdetect = store.get_change_finder()
 
         i = 0
@@ -159,11 +168,12 @@ class DataBase:
             "target": f"machine-{e.target}",
             "label": e.event_id,
             "timestamp": datetime.timestamp(e.timestamp),
-            "tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
+            #"tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
         } for e in store.logon_events ]
 
-
+        print("DONE FMT")
         with self._driver.session() as session:
+            print("Adding users")
             session.run(
                 "UNWIND $users as row "
                 "MERGE (user: User {folder: $folder, identifier: row.identifier}) "
@@ -171,6 +181,7 @@ class DataBase:
                 users=users,
                 folder=folder,
             )
+            print("Adding machines")
             session.run(
                 "UNWIND $machines as row "
                 "MERGE (machine: Machine {folder: $folder, identifier: row.identifier}) "
@@ -178,16 +189,17 @@ class DataBase:
                 machines=machines,
                 folder=folder,
             )
-            session.run(
-                "UNWIND $events as row "
-                "MATCH (user: User {identifier: row.source, folder: $folder}), (machine: Machine {identifier: row.target, folder: $folder})"
-                "MERGE (user)-[rel: LogonEvent {logon_type: row.label}]->(machine) "
-                "ON CREATE SET rel += row "
-                "ON MATCH SET rel.count = rel.count + 1",
-                events=events,
-                folder=folder,
-            )
-
+            print("Adding events")
+            for chunk in chunker(events, 10000):
+                session.run(
+                    "UNWIND $events as row "
+                    "MATCH (user: User {identifier: row.source, folder: $folder}), (machine: Machine {identifier: row.target, folder: $folder}) "
+                    "CREATE (user)-[rel: LogonEvent]->(machine) "
+                    "SET rel += row",
+                    events=chunk,
+                    folder=folder,
+                )
+            print("done")
 
     def make_lpa(self, folder: str):
         with self._driver.session() as session:

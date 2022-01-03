@@ -3,6 +3,9 @@ venv_bin = $(venv)/bin
 python = python3.8
 
 all:
+	docker-compose up -d
+
+re:
 	docker-compose up --build -d --force-recreate
 
 install:
