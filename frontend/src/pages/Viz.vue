@@ -3,8 +3,13 @@
 
   
 
-    <div class="q-pa-md q-gutter-sm">
-      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" :label="'Summary for ' + folder.name" @click="infobox = true"/>
+    <div class="q-pa-md q-gutter-sm" style="z-index:999;">
+      <div id="timeline_header" />
+      <!--
+      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" :label="'Summary for ' + folder.name" @click="infobox = true"/>
+      <div id="timeline" />
+      -->
+      <div id="timeline_footer" />
     </div>
     <q-inner-loading
         :showing="isLoading"
@@ -23,11 +28,6 @@
         </div>
     </q-inner-loading>
 
-    <div id="timeline_header" />
-    <!--
-    <div id="timeline" />
-    -->
-    <div id="timeline_footer" />
   
     <div id="cy" />
     
@@ -234,9 +234,10 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-import { make_timeline } from './timeline/timeline';
+import { make_timeline_header, make_timeline_footer } from './timeline/timeline';
 
 let timeline_data = []
+
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
 ///////////////////////////////////////////////////////////////
@@ -289,10 +290,12 @@ watch(() => folder, (folder) => {
   let start_time = new Date(Date.parse(folder.value.start_time))
   let end_time = new Date(Date.parse(folder.value.end_time))
 
+
   if (!end_time || !start_time) {
     console.log("NOPE") 
   }
-  /*
+  make_timeline_footer(start_time, end_time)
+
   let timerange = []
   let i = 0
   while (true) {
@@ -305,11 +308,13 @@ watch(() => folder, (folder) => {
     }
     i++
   }
-  */
+  console.log(timerange)
+
   folder.value.nodes.forEach((node, index) => {
     if (node.data.category == "user") {
       available_search_users.push(node.data.label)
       /*
+
       let node_timeline = []
       
       node.data.timeline.forEach((item, index) => {
@@ -325,6 +330,8 @@ watch(() => folder, (folder) => {
           times: node_timeline
       })
       */
+
+
 
     }
   })
@@ -453,7 +460,9 @@ function failed_upload_file(info) {
   overflow-x: hidden;
   height: 400px;
 }
-
+#timeline_footer {
+  z-index: 99999;
+}
 .footer {
   fill: blue;
 }
