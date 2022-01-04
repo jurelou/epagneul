@@ -277,11 +277,10 @@ const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
 watch(() => folder, (folder) => {
   let v = folder.value
-  console.log("=====", v)
-  return
   cy.json({elements: v})
-  onChangeVisualisationMode(selected_viz_type.value)
+  onChangeVisualisationMode(selected_viz_type.value, false)
   makePopper(cy)
+  return
 
 
 
@@ -369,13 +368,14 @@ function select_viz_relationships(selected_ids) {
 const options = [ 'fcose', 'cose-bilkent', 'breadthfirst', 'klay', 'grid', 'circle'];
 const selected_viz_type = ref('fcose');
 
-function onChangeVisualisationMode(layout_name) {
+function onChangeVisualisationMode(layout_name, animate = true) {
+  console.log("ANIMATE")
   cy.layout({
     name: layout_name,
     randomize: true,
-    animationEasing: 'ease-in-sine',
-    animate: true,
-    animationDuration: 800,
+    //animationEasing: 'ease-out-sine',
+    animate: animate,
+    animationDuration: 1000,
 
     fit: true,
     tile: true,

@@ -1,15 +1,16 @@
-from typing import Union, Any
+from typing import Union, Any, List
 
 from pydantic import BaseModel, Field
 from datetime import datetime
 from uuid import UUID, uuid4
 
 class EdgeData(BaseModel):
+    id: str
     source: str
     target: str
     label: str
     #tip: str
-    timestamp: float
+    timestamps: List[float]
     
 
 class Edge(BaseModel):
@@ -19,6 +20,8 @@ class Edge(BaseModel):
 class NodeData(BaseModel):
     id: str
     category: str
+
+    timeline: Any
 
     label: str = ""
 
@@ -31,7 +34,6 @@ class NodeData(BaseModel):
     width: int = 50
     height: int = 50
     algo_pagerank: float = 0.15
-    timeline: Any
 
 class Node(BaseModel):
     data: NodeData

@@ -296,7 +296,12 @@ class Datastore:
             if user.username in known_users:
                 known_users[user.username] = merge_models(known_users[user.username], user)
             else:
-                known_users[user.username] = user
+                for k, v in known_users.items():
+                    if user.username == v.username and user.domain == v.domain:
+                        known_users[k] = merge_models(known_users[k], user)
+                        break
+                else:
+                    known_users[user.username] = user
 
 
 

@@ -29,21 +29,21 @@ export function makeCytoscape(elements) {
         elements: elements,
         ready: function() {
           let layoutUtilities = this.layoutUtilities({
-            desiredAspectRatio: 2,
-            fullness: 50,
-            componentSpacing: 100
+            desiredAspectRatio: 1,
+            utilityFunction: 1,
+            componentSpacing: 80
           });
           makeEvents(this)
         },
         layout: {
           name: 'fcose',
-          animationEasing: 'ease-in-sine',
-          animate: false,      
+          animate: true,      
+          animationDuration: 1500,
           fit: true,
           tile: true,
           idealEdgeLength: 80,
           packComponents: false,
-          nodeRepulsion: 17000
+          nodeRepulsion: 25000
         },
         style: style,
       })

@@ -2,6 +2,7 @@ from neo4j import GraphDatabase
 from epagneul.common import settings
 from datetime import datetime
 
+from uuid import uuid4
 from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.files import File
 from epagneul.models.graph import Edge, Node, EdgeData, NodeData
@@ -50,7 +51,7 @@ class DataBase:
             nodes[node["identifier"]] = new_node
 
             return new_node.data.id
-        print("neo get folder")
+
         with self._driver.session() as session:
             res = session.run(
                 "MATCH (source {folder: $folder})-[rel:LogonEvent]->(target {folder: $folder}) "
@@ -60,13 +61,10 @@ class DataBase:
             for item in res:
                 source_id = _get_or_add_node(item["source"])
                 target_id = _get_or_add_node(item["target"])
-
                 rel = item["rel"]
                 rel["source"] = source_id
                 rel["target"] = target_id
-                edges.append(Edge(data=EdgeData(**rel)))
-
-        print("neo get folder done")
+                edges.append(Edge(data=EdgeData(**rel, id=uuid4().hex)))
 
         return list(nodes.values()), edges
         
@@ -138,7 +136,7 @@ class DataBase:
         timeline, detectn, cfdetect = store.get_change_finder()
 
         users = [
-            users.append({
+            {
                 "identifier": f"user-{u.identifier}",
                 "label": u.username,
                 "tip": f"id: {u.identifier}<br>Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
@@ -148,8 +146,7 @@ class DataBase:
                 "category": "user",
                 "timeline": timeline[i],
                 "algo_change_finder": cfdetect[u.identifier],
-            })
-            for i, u in enumerate(store.users.values())    
+            } for i, u in enumerate(store.users.values())    
         ]
         
         machines = [{
