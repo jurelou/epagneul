@@ -1,9 +1,6 @@
 <template>
   <q-page >
 
-    <div id="timeline_header" />
-    <div id="timeline" />
-    <div id="timeline_footer" />
   
 
     <div class="q-pa-md q-gutter-sm">
@@ -26,7 +23,12 @@
         </div>
     </q-inner-loading>
 
-    <div id="timeline"></div>
+    <div id="timeline_header" />
+    <!--
+    <div id="timeline" />
+    -->
+    <div id="timeline_footer" />
+  
     <div id="cy" />
     
     <q-dialog v-model="infobox" >
@@ -177,7 +179,7 @@
                     <q-select
                       use-input
                       outlined
-                      :options="available_machines_ref"
+                      :options="available_search_users_ref"
                       v-model="selected_machine"
                       label="Search for a user"
                       input-debounce="0"
@@ -232,7 +234,7 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-//import { make_timeline } from './timeline/timeline';
+import { make_timeline } from './timeline/timeline';
 
 let timeline_data = []
 ///////////////////////////////////////////////////////////////
@@ -240,8 +242,8 @@ let timeline_data = []
 ///////////////////////////////////////////////////////////////
 const selected_machine = ref()
 
-let available_machines = []
-const available_machines_ref = ref(available_machines)
+let available_search_users = []
+const available_search_users_ref = ref(available_search_users)
 
 function zoomNode(node_label) {
   const node = cy.elements().filter(e => e.data('label') == node_label)
@@ -249,9 +251,10 @@ function zoomNode(node_label) {
   cy.nodes().forEach(n => n.removeClass('highlight'))
   cy.edges().forEach(n => n.removeClass('highlight'))
   node.addClass('highlight')
+  /*
   node.incomers().forEach(e => { e.addClass('highlight') })
   node.outgoers().forEach(e => { e.addClass('highlight') })
-
+  */
   cy.animation({
     zoom: 1,
     center: {
@@ -263,11 +266,11 @@ function zoomNode(node_label) {
 function filterMachine (val, update) {
   if (val === '') {
     update(() => {
-      available_machines_ref.value = available_machines
+      available_search_users_ref.value = available_search_users
     })
     return
   }
-  update(() => { available_machines_ref.value = available_machines.filter(v => v.toLowerCase().indexOf(val.toLowerCase()) > -1) })
+  update(() => { available_search_users_ref.value = available_search_users.filter(v => v.toLowerCase().indexOf(val.toLowerCase()) > -1) })
 }
 
 ///////////////////////////////////////////////////////////////
@@ -280,24 +283,33 @@ watch(() => folder, (folder) => {
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value, false)
   makePopper(cy)
-  return
 
 
 
   let start_time = new Date(Date.parse(folder.value.start_time))
   let end_time = new Date(Date.parse(folder.value.end_time))
 
+  if (!end_time || !start_time) {
+    console.log("NOPE") 
+  }
+  /*
   let timerange = []
   let i = 0
   while (true) {
     const date = new Date(start_time.getTime() +  (i*60*60*1000))
     timerange.push(date)
     if (date > end_time) { break }
+    if (i > 100000) {
+      console.log("Verry long timeline ... ", i)
+      break
+    }
     i++
   }
+  */
   folder.value.nodes.forEach((node, index) => {
     if (node.data.category == "user") {
-      available_machines.push(node.data.label)
+      available_search_users.push(node.data.label)
+      /*
       let node_timeline = []
       
       node.data.timeline.forEach((item, index) => {
@@ -312,6 +324,7 @@ watch(() => folder, (folder) => {
           isIncluded: true,
           times: node_timeline
       })
+      */
 
     }
   })
@@ -406,29 +419,31 @@ function failed_upload_file(info) {
 </script>
 
 <style>
-      body {
-        overflow: hidden;
-      }
-      #cy {
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        right: 0;
-      }
-      .popper-div {
-        position: relative;
-        background-color: #333;
-        color: #fff;
-        border-radius: 4px;
-        font-size: 14px;
-        line-height: 1.4;
-        outline: 0;
-        padding: 5px 9px;
-      }
-			.cxtmenu-disabled {
-				opacity: 0.333;
-			}
+  body {
+    overflow: hidden;
+  }
+  #cy {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    margin-top: 5%;
+    height: 95%
+  }
+  .popper-div {
+    position: relative;
+    background-color: #333;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.4;
+    outline: 0;
+    padding: 5px 9px;
+  }
+	.cxtmenu-disabled {
+		opacity: 0.333;
+	}
   /*
   TIMELINE
   */

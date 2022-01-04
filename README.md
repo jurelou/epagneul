@@ -58,9 +58,3 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 ## Authors
 
 * **Louis** - *Initial work* - [jurelou](https://github.com/jurelou)
-
-
-# Q
-
-- Acc "administrator" domain local admin with != SID
-- local account with sid S-1-5-18 and domain SID 
