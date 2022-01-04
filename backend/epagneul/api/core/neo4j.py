@@ -37,7 +37,6 @@ class DataBase:
 
 
         def  _get_or_add_node(node):
-            print(node["identifier"])
             if node["identifier"] in nodes:
                 return nodes[node["identifier"]].data.id
 
@@ -51,14 +50,13 @@ class DataBase:
             nodes[node["identifier"]] = new_node
 
             return new_node.data.id
-    
+        print("neo get folder")
         with self._driver.session() as session:
             res = session.run(
                 "MATCH (source {folder: $folder})-[rel:LogonEvent]->(target {folder: $folder}) "
                 "return source, PROPERTIES(rel) as rel, target",
                 folder=folder
             )
-            print("!!!!")
             for item in res:
                 source_id = _get_or_add_node(item["source"])
                 target_id = _get_or_add_node(item["target"])
@@ -67,6 +65,8 @@ class DataBase:
                 rel["source"] = source_id
                 rel["target"] = target_id
                 edges.append(Edge(data=EdgeData(**rel)))
+
+        print("neo get folder done")
 
         return list(nodes.values()), edges
         
@@ -137,9 +137,7 @@ class DataBase:
         print("ADD STORE NOW")
         timeline, detectn, cfdetect = store.get_change_finder()
 
-        i = 0
-        users = []
-        for u in store.users.values():
+        users = [
             users.append({
                 "identifier": f"user-{u.identifier}",
                 "label": u.username,
@@ -151,7 +149,8 @@ class DataBase:
                 "timeline": timeline[i],
                 "algo_change_finder": cfdetect[u.identifier],
             })
-            i = i + 1
+            for i, u in enumerate(store.users.values())    
+        ]
         
         machines = [{
             "identifier": f"machine-{m.identifier}",
@@ -167,9 +166,10 @@ class DataBase:
             "source": f"user-{e.source}",
             "target": f"machine-{e.target}",
             "label": e.event_id,
-            "timestamp": datetime.timestamp(e.timestamp),
+            "logon_type": e.logon_type,
+            "timestamps": [datetime.timestamp(ts) for ts in e.timestamps],
             #"tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
-        } for e in store.logon_events ]
+        } for e in store.logon_events.values() ]
 
         print("DONE FMT")
         with self._driver.session() as session:
@@ -210,7 +210,6 @@ class DataBase:
                 }})
             """
             r = session.run(query)
-            print("pr:", r.data())
     
     def make_pagerank(self, folder: str):
         with self._driver.session() as session:
@@ -222,7 +221,6 @@ class DataBase:
                 }})
             """
             r = session.run(query)
-            print("pr:", r.data())
 db = DataBase()
 
 def get_database():

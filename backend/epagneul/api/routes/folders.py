@@ -27,15 +27,16 @@ def get_folder(folder_name: str, db = Depends(get_database)):
 
     users_stats = []
     machines_stats = []
+    print("get nodes")
     for node in folder.nodes:
         if node.data.category == "user":
             users_stats.append(UserStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
         elif node.data.category == "machine":
             machines_stats.append(MachineStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
-
+    print("im done")
     folder.stats = Stats(machines_stats=machines_stats, users_stats=users_stats)
     #identifier=node.data.label, pagerank=node.data.pagerank) for node in nodes if not node.data.is_compound
-
+    print("returning folder")
     return folder
 
 
@@ -57,8 +58,11 @@ def create_folder(folder_name: str, db = Depends(get_database)):
 
 
 def analyze_file(db, folder: str, file_data, filename):
+    print(f"Parsing file {filename}")
     store = parse_evtx(file_data)
+    print(f"Done parsing file {filename}")
     store.finalize()
+    print(f"Done finalizing file {filename}")
 
     db.add_evtx_store(store, folder=folder)
     db.make_lpa(folder)

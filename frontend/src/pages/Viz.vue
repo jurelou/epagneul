@@ -278,6 +278,7 @@ const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 watch(() => folder, (folder) => {
   let v = folder.value
   console.log("=====", v)
+  return
   cy.json({elements: v})
   onChangeVisualisationMode(selected_viz_type.value)
   makePopper(cy)
@@ -286,7 +287,6 @@ watch(() => folder, (folder) => {
 
   let start_time = new Date(Date.parse(folder.value.start_time))
   let end_time = new Date(Date.parse(folder.value.end_time))
-  return
 
   let timerange = []
   let i = 0

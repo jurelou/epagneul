@@ -163,13 +163,18 @@ class User(NonEmptyValuesModel):
         return v
 
 
-class LogonEvent(BaseModel):
+class BaseLogonEvent(BaseModel):
     source: str
     target: str
     event_id: int
-    timestamp: datetime.datetime 
     logon_type: int = 0
     status: str = ""
+
+class LogonEvent(BaseLogonEvent):
+    timestamp: datetime.datetime 
+
+class MergedLogonEvent(BaseLogonEvent):
+    timestamps: set = set()
 
 
 HCHECK = r"[*\\/|:\"<>?&]"
@@ -258,7 +263,7 @@ class Datastore:
     def __init__(self):
         self.machines = {}
         self.users = {}
-        self.logon_events = []
+        self.logon_events = {}
         #self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
         
         self.ml_list = []
@@ -302,7 +307,7 @@ class Datastore:
         for v in sorted(self.machines.values(), key=lambda x: x.hostname):
             print("MMM",  v.identifier, v)
         """
-        for event in self.logon_events:
+        for event in self.logon_events.values():
             if event.target not in self.machines:
                 for m in self.machines.values():
                     if event.target == m.hostname or event.target in m.ips:
@@ -313,7 +318,8 @@ class Datastore:
                     if event.source == u.sid or event.source == u.username:
                         event.source = u.identifier
                         break
-            self.add_ml_frame([event.timestamp.strftime("%Y-%m-%d %H:%M:%S"), event.event_id, event.source]) 
+            for ts in event.timestamps:
+                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_id, event.source])
 
 
     def add_timestamp(self, timestamp):
@@ -339,7 +345,11 @@ class Datastore:
         #self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
     def add_logon_event(self, event):
-        self.logon_events.append(event)
+        identifier = f"{event.source}-{event.target}-{event.event_id}-{event.logon_type}"
+        if identifier in self.logon_events:
+            self.logon_events[identifier].timestamps.add(event.timestamp)
+        else:
+            self.logon_events[identifier] = MergedLogonEvent(**event.dict(exclude={'timestamp'}), timestamps={event.timestamp})
 
     def add_machine(self, machine: Machine):
         if machine.hostname:
@@ -545,7 +555,7 @@ if __name__ == "__main__":
     db.bootstrap()
     db.rm()
     
-    store = parse_evtx("/data/filtered2.evtx")
+    store = parse_evtx("/data/filtered.evtx")
 
     store.finalize()
 
@@ -560,8 +570,8 @@ if __name__ == "__main__":
     """
     db.add_evtx_store(store, folder="a")
 
-    #db.make_lpa("a")
-    #db.make_pagerank("a")
+    db.make_lpa("a")
+    db.make_pagerank("a")
 
     
     
