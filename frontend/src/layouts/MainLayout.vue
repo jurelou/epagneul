@@ -3,7 +3,11 @@
 
     <q-header elevated class="text-white" style="background: #161b22" height-hint="61.59">
       <q-toolbar class="q-py-sm q-px-md">
-        <q-btn round dense flat :ripple="false" icon="anchor" size="19px" color="white" class="q-mr-sm" no-caps />
+      <q-btn to="/" round dense flat  size="19px" color="green" class="q-mr-sm" no-caps>
+          <q-avatar>
+            <img src="../assets/logo.png">
+          </q-avatar>
+      </q-btn>
 
         <q-select
           ref="search" dark dense standout use-input hide-selected

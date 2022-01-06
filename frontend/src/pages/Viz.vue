@@ -1,83 +1,15 @@
 <template>
+  
+  
   <q-page >
 
-  
-
-    <div class="q-pa-md q-gutter-sm" style="z-index:999;">
-      <div id="timeline_header" />
-      <!--
-      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" :label="'Summary for ' + folder.name" @click="infobox = true"/>
-      <div id="timeline" />
-      -->
-      <div id="timeline_footer" />
-    </div>
-    <q-inner-loading
-        :showing="isLoading"
-        label="Loading folder..."
-        label-class="text-primary"
-        color="primary"
-        label-style="font-size: 1.1em"
-        size="5.5em"
-    />
-    <q-inner-loading :showing="!isLoading && !folder?.files?.length">
-        <q-spinner-radio size="5.5em" color="negative" />
-        <div class="q-pa-md q-gutter-sm text-negative">
-          You don't have any files yet !
-          <br>
-          Click on 'Upload new files'
-        </div>
-    </q-inner-loading>
-
-  
-    <div id="cy" />
-    
-    <q-dialog v-model="infobox" >
-      <q-card style="width: 900px; max-width: 800vw;">
-        <q-card-section>
-        <q-tabs
-          v-model="infotab"
-          dense
-          class="text-grey"
-          active-color="primary"
-          indicator-color="primary"
-          align="justify"
-        >
-          <q-tab name="machines" label="Machines" />
-          <q-tab name="alarms" label="Alarms" />
-          <q-tab name="movies" label="Movies" />
-        </q-tabs>
-
-        <q-separator />
-        <q-tab-panels v-model="infotab" animated>
-          <q-tab-panel name="machines">
-            <div class="text-h6">machines</div>
-              <div v-for="i in folder?.nodes" v-bind:key="i">
-                {{ i }}
-              </div>
-          </q-tab-panel>
-
-          <q-tab-panel name="alarms">
-            <div class="text-h6">Alarms</div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.sdqssssssssssssssss
-          </q-tab-panel>
-
-          <q-tab-panel name="movies">
-            <div class="text-h6">Movies</div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.
-          </q-tab-panel>
-        </q-tab-panels>
-          
-
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-
-    <q-drawer 
+  <!--
+  <q-drawer 
       show-if-above
-      side="right"
+      side="left"
       behavior="desktop"
       elevated>
-
+      <div>
       <q-card>
         <q-tabs
           v-model="tab"
@@ -93,10 +25,9 @@
         </q-tabs>
         <q-separator />
 
-        <!--
-        FILES MGMT
-        -->
+
         <q-tab-panels v-model="tab" animated>
+
           <q-tab-panel name="files">
 
               <q-expansion-item switch-toggle-side popup default-opened icon="upload" label="Upload new files">
@@ -130,9 +61,7 @@
               </q-expansion-item>
           </q-tab-panel>
 
-        <!--
-        VIZ SETTINGS
-        -->
+
           <q-tab-panel name="vizualisation" style="overflow: hidden;">
             <q-list>
             
@@ -201,9 +130,103 @@
               </q-expansion-item>
             </q-list>
           </q-tab-panel>
+          
         </q-tab-panels>
+
+
       </q-card>
+
+      </div>
+
+
+
+
     </q-drawer>
+    -->
+
+  <div class="left-panel">
+    <div>
+      aaaaa
+    </div>
+    <div style="flex-grow:1;"></div>
+    <div>
+      footeraaaaaaaaaaaa
+    </div>
+  </div>
+
+
+
+    <q-inner-loading
+        :showing="isLoading"
+        label="Loading folder..."
+        label-class="text-primary"
+        color="primary"
+        label-style="font-size: 1.1em"
+        size="5.5em"
+    />
+    <q-inner-loading :showing="!isLoading && !folder?.files?.length">
+        <q-spinner-radio size="5.5em" color="negative" />
+        <div class="q-pa-md q-gutter-sm text-negative">
+          You don't have any files yet !
+          <br>
+          Click on 'Upload new files'
+        </div>
+    </q-inner-loading>
+
+    <div class="q-pa-md q-gutter-sm" style="z-index:999;" v-if="!isLoading && folder?.files?.length">
+      <div id="timeline_header" />
+      <!--
+      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" :label="'Summary for ' + folder.name" @click="infobox = true"/>
+      <div id="timeline" />
+      -->
+      <div id="timeline_footer" />
+    </div>
+
+  
+    <div id="cy" />
+    
+    <q-dialog v-model="infobox" >
+      <q-card style="width: 900px; max-width: 800vw;">
+        <q-card-section>
+        <q-tabs
+          v-model="infotab"
+          dense
+          class="text-grey"
+          active-color="primary"
+          indicator-color="primary"
+          align="justify"
+        >
+          <q-tab name="machines" label="Machines" />
+          <q-tab name="alarms" label="Alarms" />
+          <q-tab name="movies" label="Movies" />
+        </q-tabs>
+
+        <q-separator />
+        <q-tab-panels v-model="infotab" animated>
+          <q-tab-panel name="machines">
+            <div class="text-h6">machines</div>
+              <div v-for="i in folder?.nodes" v-bind:key="i">
+                {{ i }}
+              </div>
+          </q-tab-panel>
+
+          <q-tab-panel name="alarms">
+            <div class="text-h6">Alarms</div>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit.sdqssssssssssssssss
+          </q-tab-panel>
+
+          <q-tab-panel name="movies">
+            <div class="text-h6">Movies</div>
+            Lorem ipsum dolor sit amet consectetur adipisicing elit.
+          </q-tab-panel>
+        </q-tab-panels>
+          
+
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
+
 </q-page>
 </template>
 
@@ -230,6 +253,7 @@ onMounted(() => {
 
 const infobox = ref(false)
 const infotab = ref('machines')
+
 
 ///////////////////////////////////////////////////////////////
 // TIMELINE
@@ -426,6 +450,20 @@ function failed_upload_file(info) {
 </script>
 
 <style>
+  .left-panel:first-child {
+    z-index: 999;
+
+  }
+  .left-panel {
+    z-index: 999;
+    background-color: red;
+    min-height:100vh;
+    display:flex;
+    flex-direction:column;
+    width: 20%;
+  }
+
+
   body {
     overflow: hidden;
   }
