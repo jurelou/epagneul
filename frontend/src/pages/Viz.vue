@@ -7,92 +7,140 @@
       show-if-above
       side="left"
       behavior="desktop"
+      style="overflow: hidden; height: 100vh !important;"
       elevated>
 
-    <q-scroll-area style="height: 83%; max-width: 300px;">
-        <q-card class="no-margin column full-height">
-          <q-card-section v-if="folder?.files?.length">
-            <div class="row no-wrap items-center">
-              <div class="col text-h6 ellipsis">
-                {{ folder.name }}
+        <q-scroll-area style="height: 79%; max-width: 300px;" v-if="folder?.files?.length">
+
+          <q-card class="no-margin column full-height">
+          <q-card-section>
+              <div class="row no-wrap items-center">
+                <div class="col text-h6 ellipsis">
+                  {{ folder.name }}
+                </div>
+                <div class="col-auto text-grey text-caption q-pt-md row no-wrap items-center">
+                  <!--<q-icon name="folder" />-->
+                  {{ folder.files.length }} File(s)
+                </div>
               </div>
-              <div class="col-auto text-grey text-caption q-pt-md row no-wrap items-center">
-                <!--<q-icon name="folder" />-->
-                {{ folder.files.length }} File(s)
+              <!--
+              <div class="text-subtitle1">
+                $・Italian, Cafe
               </div>
-            </div>
-          </q-card-section>
+              -->
+              <div class="text-caption text-grey">
+                Time range: {{ moment.duration(moment(folder.end_time).diff(moment(folder.start_time))).asDays().toFixed(1) }} days
+              </div>
+              <div class="text-caption">
+                First event:
+              </div>
+              <div class="text-caption text-grey">
+                {{ moment(folder.start_time).format("dddd, MMMM Do YYYY, h:mm:ss a") }}
+              </div>
+              <div class="text-caption">
+                Last event:
+              </div>
+              <div class="text-caption text-grey">
+                {{ moment(folder.end_time).format("dddd, MMMM Do YYYY, h:mm:ss a") }}
+              </div>
 
-          <q-card-section v-else>
-            No files yet!
-          </q-card-section>
+            </q-card-section>
 
-          <q-card-section class="q-pt-none" v-if="folder?.files?.length">
-            <div class="text-subtitle1">
-              $・Italian, Cafe
-            </div>
-            <div class="text-caption text-grey">
-              Started: {{ folder.start_time }}
-            </div>
-            <div class="text-caption text-grey">
-              Ended: {{ folder.end_time }}
-            </div>
-          </q-card-section>
+            <q-separator inset dark />
 
-          <q-separator inset dark />
+            <q-card-section>
+                <!--<div class="text-caption text-no-wrap text-bold text-justify q-mb-md">aaa</div>-->
+                      <q-select
+                        label="Select layout"
+                        transition-show="scale"
+                        transition-hide="scale"
+                        outlined
+                        v-model="selected_viz_type"
+                        :options="options"
+                        @update:model-value="onChangeVisualisationMode" 
+                      />
+
+              </q-card-section>
+
+              <q-separator inset dark />
+              
+              <q-card-section>
+
+                <q-select
+                  style="overflow: hidden;"
+                  outlined
+                  v-model="default_viz_node_options"
+                  multiple
+                  :options="viz_node_options"
+                  use-chips
+                  stack-label
+                  label="Filter edges"
+                  @update:model-value="select_viz_relationships"
+                />
+
+              </q-card-section>
 
 
+              <q-card-section>
+                    <q-select
+                      use-input
+                      outlined
+                      :options="available_search_users_ref"
+                      v-model="selected_user"
+                      label="Search for a user"
+                      input-debounce="0"
+                      transition-show="scale"
+                      transition-hide="scale"
+                      @update:model-value="zoomNode($event, 'user')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey">
+                            No results
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>    
+              </q-card-section>
+
+              <q-card-section>
+                    <q-select
+                      use-input
+                      outlined
+                      :options="available_search_machines_ref"
+                      v-model="selected_machine"
+                      label="Search for a machine"
+                      input-debounce="0"
+                      transition-show="scale"
+                      transition-hide="scale"
+                      @update:model-value="zoomNode($event, 'machine')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey">
+                            No results
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>    
+              </q-card-section>
+
+          </q-card>
+        </q-scroll-area>
+
+        <q-card class="column">
           <q-card-section>
-            <!--<div class="text-caption text-no-wrap text-bold text-justify q-mb-md">aaa</div>-->
-                  <q-select
-                    label="Select layout"
-                    transition-show="scale"
-                    transition-hide="scale"
-                    outlined
-                    v-model="selected_viz_type"
-                    :options="options"
-                    @update:model-value="onChangeVisualisationMode" 
-                  />
-
+            <q-uploader
+              :url="base_url + '/folders/' + route.params.folder + '/upload'"
+              multiple
+              @uploaded="uploaded_files"
+              @failed="failed_upload_file"
+            />
           </q-card-section>
-
-          <q-separator inset dark />
-          
-          <q-card-section>
-              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
-                <q-separator />
-                  <div class="q-pa-sm q-gutter-md">
-                    <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
-                    <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
-                  </div>
-                  <q-option-group
-                    color="teal"  
-                    :options="viz_node_options"
-                    type="checkbox"
-                    v-model="default_viz_node_options"
-                    @update:model-value="select_viz_relationships"  
-                  />
-              </q-expansion-item>
-          </q-card-section>
-
-          <q-card-section>
-              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
-                <q-separator />
-                  <div class="q-pa-sm q-gutter-md">
-                    <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
-                    <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
-                  </div>
-                  <q-option-group
-                    color="teal"  
-                    :options="viz_node_options"
-                    type="checkbox"
-                    v-model="default_viz_node_options"
-                    @update:model-value="select_viz_relationships"  
-                  />
-              </q-expansion-item>
-          </q-card-section>
-
         </q-card>
+
+
+    </q-drawer>
 
 
         <!--
@@ -114,96 +162,7 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-
-
-            <q-list>
-            
-
-              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                    <div class="q-pa-sm q-gutter-md">
-                      <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
-                      <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
-                    </div>
-                    <q-option-group
-                      color="teal"  
-                      :options="viz_node_options"
-                      type="checkbox"
-                      v-model="default_viz_node_options"
-                      @update:model-value="select_viz_relationships"
-                      
-                    />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-expansion-item switch-toggle-side popup icon="search" label="Search">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                    <q-select
-                      use-input
-                      outlined
-                      :options="available_search_users_ref"
-                      v-model="selected_machine"
-                      label="Search for a user"
-                      input-debounce="0"
-                      transition-show="scale"
-                      transition-hide="scale"
-                      @update:model-value="zoomNode"
-                      @filter="filterMachine"
-                    >
-                      <template v-slot:no-option>
-                        <q-item>
-                          <q-item-section class="text-grey">
-                            No results
-                          </q-item-section>
-                        </q-item>
-                      </template>
-                    </q-select>                  
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-            </q-list>
-
-      -->
-
-
-
-
-    </q-scroll-area>
-        <q-card class="no-margin column" style="overflow: hidden;">
-          <q-card-section class="toto">
-
-            <div class="text-caption text-no-wrap text-bold text-justify q-mb-md">Upload a new file</div>
-            <q-uploader
-              :url="base_url + '/folders/' + route.params.folder + '/upload'"
-              multiple
-              style="max-width: 100%; overflow: hidden;"
-              @uploaded="uploaded_files"
-              @failed="failed_upload_file"
-            />
-          </q-card-section>
-        </q-card>
-    <!--
-    <q-card style="width: 300px; overflow: hidden;">
-
-          <q-card-section>
-            <div class="text-caption text-no-wrap text-bold text-justify q-mb-md">Upload a new file</div>
-            <q-uploader
-              :url="base_url + '/folders/' + route.params.folder + '/upload'"
-              multiple
-              style="max-width: 100%; overflow: hidden;"
-              @uploaded="uploaded_files"
-              @failed="failed_upload_file"
-            />
-
-
-          </q-card-section> 
-    </q-card>
     -->
-    </q-drawer>
 
     <div id="cy" />
 
@@ -218,10 +177,10 @@
     />
     <q-inner-loading :showing="!isLoading && !folder?.files?.length">
         <q-spinner-radio size="5.5em" color="negative" />
-        <div class="q-pa-md q-gutter-sm text-negative">
+        <div class="q-pa-md q-gutter-sm text-center text-negative">
           You don't have any files yet !
           <br>
-          Click on 'Upload new files'
+          Click on the left panel to upload your files
         </div>
     </q-inner-loading>
 
@@ -287,6 +246,7 @@ import { useQuasar } from 'quasar'
 
 import { makeCytoscape } from './cy/cytoscape'
 import { makePopper } from './cy/events';
+import moment from 'moment'
 
 const route = useRoute()
 const $q = useQuasar()
@@ -314,21 +274,23 @@ let timeline_data = []
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
 ///////////////////////////////////////////////////////////////
-const selected_machine = ref()
+var selected_machine = ref()
+const available_search_machines_ref = ref([])
 
-let available_search_users = []
-const available_search_users_ref = ref(available_search_users)
-
-function zoomNode(node_label) {
-  const node = cy.elements().filter(e => e.data('label') == node_label)
-
+function zoomNode(node_label, category) {
+  if (category == "user") {
+    selected_machine.value = null
+  } else if (category == "machine") {
+    selected_user.value = null
+  }
+  const node = cy.nodes().filter(e => e.data('label') == node_label && e.data('category') == category)
   cy.nodes().forEach(n => n.removeClass('highlight'))
   cy.edges().forEach(n => n.removeClass('highlight'))
   node.addClass('highlight')
-  /*
+
   node.incomers().forEach(e => { e.addClass('highlight') })
   node.outgoers().forEach(e => { e.addClass('highlight') })
-  */
+
   cy.animation({
     zoom: 1,
     center: {
@@ -337,15 +299,11 @@ function zoomNode(node_label) {
   }).play()
 }
 
-function filterMachine (val, update) {
-  if (val === '') {
-    update(() => {
-      available_search_users_ref.value = available_search_users
-    })
-    return
-  }
-  update(() => { available_search_users_ref.value = available_search_users.filter(v => v.toLowerCase().indexOf(val.toLowerCase()) > -1) })
-}
+///////////////////////////////////////////////////////////////
+// SELECT USER
+///////////////////////////////////////////////////////////////
+const selected_user = ref()
+const available_search_users_ref = ref([])
 
 ///////////////////////////////////////////////////////////////
 // FOLDER DATA
@@ -384,8 +342,10 @@ watch(() => folder, (folder) => {
   console.log(timerange)
 
   folder.value.nodes.forEach((node, index) => {
-    if (node.data.category == "user") {
-      available_search_users.push(node.data.label)
+    if (node.data.category == "machine") {
+      available_search_machines_ref.value.push(node.data.label)
+    } else if (node.data.category == "user") {
+      available_search_users_ref.value.push(node.data.label)
       /*
       let node_timeline = []
       
@@ -424,6 +384,7 @@ const viz_node_options = [
   { label: '4771: Kerberos pre-authentication failed', value: '4771', color: 'green' }
 ]
 
+/*
 function select_all_edges() {
   default_viz_node_options.value = ["4624", "4625", "4768", "4769", "4776", "4648", "4771" ]
   select_viz_relationships(default_viz_node_options.value)
@@ -433,7 +394,7 @@ function unselect_all_edges() {
   default_viz_node_options.value = []
   select_viz_relationships([])
 }
-
+*/
 function select_viz_relationships(selected_ids) {
   console.log(selected_ids)
   cy.edges().forEach(edge => {
@@ -497,10 +458,14 @@ function failed_upload_file(info) {
 </script>
 
 <style>
+
+.toto {
+  margin-bottom: 100px;
+}
 .q-uploader {
-  width: 280px;
-  margin-left: 10px !important;
-  margin-right: 10px !important;
+  width: 250px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .q-page-container {
