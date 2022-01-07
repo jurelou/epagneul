@@ -1,49 +1,104 @@
 <template>
   
   
-  <q-page >
+  <q-page>
 
-  <!--
   <q-drawer 
       show-if-above
       side="left"
       behavior="desktop"
       elevated>
-      <div>
-      <q-card>
-        <q-tabs
-          v-model="tab"
-          dense
-          align="justify"
-          narrow-indicator
-          indicator-color="primary"
-          active-color="primary"
-          class="text-grey-8"
-        >
-          <q-tab icon="description" name="files" label="files" />
-          <q-tab icon="visibility" name="vizualisation" label="visualization" />
-        </q-tabs>
+
+    <q-scroll-area style="height: 83%; max-width: 300px;">
+        <q-card class="no-margin column full-height">
+          <q-card-section v-if="folder?.files?.length">
+            <div class="row no-wrap items-center">
+              <div class="col text-h6 ellipsis">
+                {{ folder.name }}
+              </div>
+              <div class="col-auto text-grey text-caption q-pt-md row no-wrap items-center">
+                <!--<q-icon name="folder" />-->
+                {{ folder.files.length }} File(s)
+              </div>
+            </div>
+          </q-card-section>
+
+          <q-card-section v-else>
+            No files yet!
+          </q-card-section>
+
+          <q-card-section class="q-pt-none" v-if="folder?.files?.length">
+            <div class="text-subtitle1">
+              $・Italian, Cafe
+            </div>
+            <div class="text-caption text-grey">
+              Started: {{ folder.start_time }}
+            </div>
+            <div class="text-caption text-grey">
+              Ended: {{ folder.end_time }}
+            </div>
+          </q-card-section>
+
+          <q-separator inset dark />
+
+
+          <q-card-section>
+            <!--<div class="text-caption text-no-wrap text-bold text-justify q-mb-md">aaa</div>-->
+                  <q-select
+                    label="Select layout"
+                    transition-show="scale"
+                    transition-hide="scale"
+                    outlined
+                    v-model="selected_viz_type"
+                    :options="options"
+                    @update:model-value="onChangeVisualisationMode" 
+                  />
+
+          </q-card-section>
+
+          <q-separator inset dark />
+          
+          <q-card-section>
+              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
+                <q-separator />
+                  <div class="q-pa-sm q-gutter-md">
+                    <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
+                    <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
+                  </div>
+                  <q-option-group
+                    color="teal"  
+                    :options="viz_node_options"
+                    type="checkbox"
+                    v-model="default_viz_node_options"
+                    @update:model-value="select_viz_relationships"  
+                  />
+              </q-expansion-item>
+          </q-card-section>
+
+          <q-card-section>
+              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
+                <q-separator />
+                  <div class="q-pa-sm q-gutter-md">
+                    <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
+                    <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
+                  </div>
+                  <q-option-group
+                    color="teal"  
+                    :options="viz_node_options"
+                    type="checkbox"
+                    v-model="default_viz_node_options"
+                    @update:model-value="select_viz_relationships"  
+                  />
+              </q-expansion-item>
+          </q-card-section>
+
+        </q-card>
+
+
+        <!--
         <q-separator />
 
-
-        <q-tab-panels v-model="tab" animated>
-
-          <q-tab-panel name="files">
-
-              <q-expansion-item switch-toggle-side popup default-opened icon="upload" label="Upload new files">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                      <q-uploader
-                        :url="base_url + '/folders/' + route.params.folder + '/upload'"
-                        multiple
-                        style="max-width: 100%; overflow: hidden;"
-                        @uploaded="uploaded_files"
-                        @failed="failed_upload_file"
-                      />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
+             
               <q-expansion-item switch-toggle-side popup icon="description" label="Uploaded files" :caption="folder?.files?.length + ' files'">
                 <q-separator />
                 <q-card>
@@ -59,28 +114,10 @@
                   </q-card-section>
                 </q-card>
               </q-expansion-item>
-          </q-tab-panel>
 
 
-          <q-tab-panel name="vizualisation" style="overflow: hidden;">
             <q-list>
             
-              <q-expansion-item switch-toggle-side popup icon="scatter_plot" label="Layout">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                  <q-select
-                    label="Layout type"
-                    transition-show="scale"
-                    transition-hide="scale"
-                    outlined
-                    v-model="selected_viz_type"
-                    :options="options"
-                    @update:model-value="onChangeVisualisationMode" 
-                  />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item> 
 
               <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
                 <q-separator />
@@ -129,31 +166,46 @@
                 </q-card>
               </q-expansion-item>
             </q-list>
-          </q-tab-panel>
-          
-        </q-tab-panels>
 
-
-      </q-card>
-
-      </div>
+      -->
 
 
 
 
-    </q-drawer>
+    </q-scroll-area>
+        <q-card class="no-margin column" style="overflow: hidden;">
+          <q-card-section class="toto">
+
+            <div class="text-caption text-no-wrap text-bold text-justify q-mb-md">Upload a new file</div>
+            <q-uploader
+              :url="base_url + '/folders/' + route.params.folder + '/upload'"
+              multiple
+              style="max-width: 100%; overflow: hidden;"
+              @uploaded="uploaded_files"
+              @failed="failed_upload_file"
+            />
+          </q-card-section>
+        </q-card>
+    <!--
+    <q-card style="width: 300px; overflow: hidden;">
+
+          <q-card-section>
+            <div class="text-caption text-no-wrap text-bold text-justify q-mb-md">Upload a new file</div>
+            <q-uploader
+              :url="base_url + '/folders/' + route.params.folder + '/upload'"
+              multiple
+              style="max-width: 100%; overflow: hidden;"
+              @uploaded="uploaded_files"
+              @failed="failed_upload_file"
+            />
+
+
+          </q-card-section> 
+    </q-card>
     -->
+    </q-drawer>
 
-  <div class="left-panel">
-    <div>
-      aaaaa
-    </div>
-    <div style="flex-grow:1;"></div>
-    <div>
-      footeraaaaaaaaaaaa
-    </div>
-  </div>
-
+    <div id="cy" />
 
 
     <q-inner-loading
@@ -182,9 +234,6 @@
       <div id="timeline_footer" />
     </div>
 
-  
-    <div id="cy" />
-    
     <q-dialog v-model="infobox" >
       <q-card style="width: 900px; max-width: 800vw;">
         <q-card-section>
@@ -338,7 +387,6 @@ watch(() => folder, (folder) => {
     if (node.data.category == "user") {
       available_search_users.push(node.data.label)
       /*
-
       let node_timeline = []
       
       node.data.timeline.forEach((item, index) => {
@@ -353,16 +401,15 @@ watch(() => folder, (folder) => {
           isIncluded: true,
           times: node_timeline
       })
+
       */
-
-
 
     }
   })
+
 //make_timeline(timeline_data)
 
 }, { deep: true })
-
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
@@ -450,31 +497,32 @@ function failed_upload_file(info) {
 </script>
 
 <style>
-  .left-panel:first-child {
-    z-index: 999;
+.q-uploader {
+  width: 280px;
+  margin-left: 10px !important;
+  margin-right: 10px !important;
+}
 
-  }
-  .left-panel {
-    z-index: 999;
-    background-color: red;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-    width: 20%;
-  }
+.q-page-container {
+  padding-left: 0px !important;
+}
 
-
+.q-drawer{
+  top: 0 !important;
+}
+ 
   body {
     overflow: hidden;
   }
+
   #cy {
     position: absolute;
-    left: 0;
+    left: 300px;
     top: 0;
     bottom: 0;
     right: 0;
     margin-top: 5%;
-    height: 95%
+    height: 95%;
   }
   .popper-div {
     position: relative;
