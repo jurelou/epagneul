@@ -1,0 +1,54 @@
+---
+version: '3.5'
+
+volumes:
+  neo4j:
+
+networks:
+    backend:
+
+services:
+  neo4j:
+    image: neo4j:4.4.2
+    container_name: neo4j
+    restart: unless-stopped
+    networks:
+      - backend
+    ports:
+      - 7474:7474
+      - 7687:7687
+    volumes:
+      - neo4j:/data
+    environment:
+      - NEO4J_AUTH=neo4j/epagneul
+      - NEO4JLABS_PLUGINS=["apoc", "graph-data-science"]
+      - apoc.import.file.enabled=true
+
+  backend:
+    build:
+      context: ./backend
+    container_name: backend
+    restart: unless-stopped
+    networks:
+      - backend
+    volumes:
+      - ./backend/epagneul:/opt/backend/epagneul:ro
+    ports:
+      - 8000:8000
+    depends_on:
+      - neo4j
+  
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    container_name: frontend
+    networks:
+      - backend
+    volumes:
+      - ./frontend/src:/opt/frontend/src:ro
+    ports:
+      - 8080:8080
+    environment:
+      - VUE_APP_BASE_URL=http://chouchen-srv:8000/api
+    entrypoint: ["/opt/frontend/entrypoint.sh"]

@@ -2,6 +2,22 @@
   
   
   <q-page>
+    <q-inner-loading
+        :showing="isLoading"
+        label="Loading folder..."
+        label-class="text-primary"
+        color="primary"
+        label-style="font-size: 1.1em"
+        size="5.5em"
+    />
+    <q-inner-loading :showing="!isLoading && !folder?.files?.length">
+        <q-spinner-radio size="5.5em" color="negative" />
+        <div class="q-pa-md q-gutter-sm text-center text-negative">
+          You don't have any files yet !
+          <br>
+          Click on the left panel to upload your files
+        </div>
+    </q-inner-loading>
 
   <q-drawer 
       show-if-above
@@ -76,7 +92,20 @@
                   stack-label
                   label="Filter edges"
                   @update:model-value="select_viz_relationships"
-                />
+                >
+
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      removable
+                      dense
+                      color="primary"
+                      @remove="scope.removeAtIndex(scope.index)"
+                    >
+                      {{ scope.opt.value || scope.opt }}
+                    </q-chip>
+                  </template>
+
+                </q-select>
 
               </q-card-section>
 
@@ -164,35 +193,18 @@
               </q-expansion-item>
     -->
 
+    <div ref="resizeRef" class="timeline-main">
+      <svg ref="svgRef" class="timeline-svg">
+        <g class="x-axis" />
+        <g class="brush" />
+      </svg>
+    </div>
+
     <div id="cy" />
 
 
-    <q-inner-loading
-        :showing="isLoading"
-        label="Loading folder..."
-        label-class="text-primary"
-        color="primary"
-        label-style="font-size: 1.1em"
-        size="5.5em"
-    />
-    <q-inner-loading :showing="!isLoading && !folder?.files?.length">
-        <q-spinner-radio size="5.5em" color="negative" />
-        <div class="q-pa-md q-gutter-sm text-center text-negative">
-          You don't have any files yet !
-          <br>
-          Click on the left panel to upload your files
-        </div>
-    </q-inner-loading>
 
-    <div class="q-pa-md q-gutter-sm" style="z-index:999;" v-if="!isLoading && folder?.files?.length">
-      <div id="timeline_header" />
-      <!--
-      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" :label="'Summary for ' + folder.name" @click="infobox = true"/>
-      <div id="timeline" />
-      -->
-      <div id="timeline_footer" />
-    </div>
-
+    <!--
     <q-dialog v-model="infobox" >
       <q-card style="width: 900px; max-width: 800vw;">
         <q-card-section>
@@ -233,20 +245,25 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+  -->
 
 
 </q-page>
 </template>
 
 <script setup>
-import { onMounted, ref, watch  } from 'vue';
+import moment from 'moment'
+import { onMounted, watchEffect, ref, watch  } from 'vue';
 import { useRoute } from 'vue-router'
-import { useFolder } from '../hooks';
 import { useQuasar } from 'quasar'
 
+import { useFolder } from '../hooks';
 import { makeCytoscape } from './cy/cytoscape'
 import { makePopper } from './cy/events';
-import moment from 'moment'
+import { makeTimeline } from './timeline/timeline';
+
+import * as d3 from 'd3v4';
+
 
 const route = useRoute()
 const $q = useQuasar()
@@ -255,8 +272,32 @@ var cy = null
 
 var timeline_chart = null
 
+const timelineFooterRef = ref(null);
+
+
+const svgRef = ref(null);
+
+
 onMounted(() => {
+  const svg = d3.select(svgRef.value);
   cy = makeCytoscape(folder.value)
+
+  watchEffect(() => {
+    if (!folder.value || !folder.value.files.length) return
+    makeTimeline(svg, folder.value.start_time, folder.value.end_time)
+
+    cy.json({elements: folder.value})
+    onChangeVisualisationMode(selected_viz_type.value, false)
+    makePopper(cy)
+    folder.value.nodes.forEach((node, index) => {
+      if (node.data.category == "machine")
+        available_search_machines_ref.value.push(node.data.label)
+      else if (node.data.category == "user")
+        available_search_users_ref.value.push(node.data.label)
+    })
+
+  })
+
 
 })
 
@@ -267,9 +308,7 @@ const infotab = ref('machines')
 ///////////////////////////////////////////////////////////////
 // TIMELINE
 ///////////////////////////////////////////////////////////////
-import { make_timeline_header, make_timeline_footer } from './timeline/timeline';
 
-let timeline_data = []
 
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
@@ -310,66 +349,6 @@ const available_search_users_ref = ref([])
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
-watch(() => folder, (folder) => {
-  let v = folder.value
-  cy.json({elements: v})
-  onChangeVisualisationMode(selected_viz_type.value, false)
-  makePopper(cy)
-
-
-
-  let start_time = new Date(Date.parse(folder.value.start_time))
-  let end_time = new Date(Date.parse(folder.value.end_time))
-
-
-  if (!end_time || !start_time) {
-    console.log("NOPE") 
-  }
-  make_timeline_footer(start_time, end_time)
-
-  let timerange = []
-  let i = 0
-  while (true) {
-    const date = new Date(start_time.getTime() +  (i*60*60*1000))
-    timerange.push(date)
-    if (date > end_time) { break }
-    if (i > 100000) {
-      console.log("Verry long timeline ... ", i)
-      break
-    }
-    i++
-  }
-  console.log(timerange)
-
-  folder.value.nodes.forEach((node, index) => {
-    if (node.data.category == "machine") {
-      available_search_machines_ref.value.push(node.data.label)
-    } else if (node.data.category == "user") {
-      available_search_users_ref.value.push(node.data.label)
-      /*
-      let node_timeline = []
-      
-      node.data.timeline.forEach((item, index) => {
-        node_timeline.push({
-          value: item,
-          starting_time: timerange[index],
-          ending_time: timerange[index + 1],
-        })
-      })
-      timeline_data.push({
-        label: node.data.label,
-          isIncluded: true,
-          times: node_timeline
-      })
-
-      */
-
-    }
-  })
-
-//make_timeline(timeline_data)
-
-}, { deep: true })
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
@@ -384,17 +363,6 @@ const viz_node_options = [
   { label: '4771: Kerberos pre-authentication failed', value: '4771', color: 'green' }
 ]
 
-/*
-function select_all_edges() {
-  default_viz_node_options.value = ["4624", "4625", "4768", "4769", "4776", "4648", "4771" ]
-  select_viz_relationships(default_viz_node_options.value)
-}
-
-function unselect_all_edges() {
-  default_viz_node_options.value = []
-  select_viz_relationships([])
-}
-*/
 function select_viz_relationships(selected_ids) {
   console.log(selected_ids)
   cy.edges().forEach(edge => {
@@ -459,9 +427,6 @@ function failed_upload_file(info) {
 
 <style>
 
-.toto {
-  margin-bottom: 100px;
-}
 .q-uploader {
   width: 250px;
   margin-left: 10px;
@@ -476,65 +441,54 @@ function failed_upload_file(info) {
   top: 0 !important;
 }
  
-  body {
-    overflow: hidden;
-  }
-
   
-  #cy {
-    position: absolute;
-    left: 300px;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    margin-top: 5%;
-    height: 95%;
-  }
-  .popper-div {
-    position: relative;
-    background-color: #333;
-    color: #fff;
-    border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.4;
-    outline: 0;
-    padding: 5px 9px;
-  }
-	.cxtmenu-disabled {
-		opacity: 0.333;
-	}
-  /*
-  TIMELINE
-  */
-#timeline {
-  background-color: transparent;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  height: 400px;
-}
-#timeline_footer {
-  z-index: 99999;
-}
-.footer {
-  fill: blue;
+#cy {
+  position: absolute;
+  left: 300px;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  margin-top: 5%;
+  height: 95%;
 }
 
-.mini {
-  fill: pink;
+.popper-div {
+  position: relative;
+  background-color: #333;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: 0;
+  padding: 5px 9px;
 }
 
-.main {
-  background-color: blue;
-  fill: blue;
+.cxtmenu-disabled {
+	opacity: 0.333;
 }
 
-.core-chart line {
-  stroke: grey;
+/* TIMELINE */
+
+.timeline-main {
+  width: 100%;
+  height: 150px;
+  margin-left: 29%;
 }
 
-.core-labels text {
-  text-anchor: end;
-  fill: blue;
+.timeline-svg {
+  width: 100%;
+}
+
+.x-axis {
+}
+
+.brush {
+  height: 100px;
+}
+
+.selection {
+  fill: #20C20E !important;
+  height: 30px;
 }
 
 .domain, .tick line{
@@ -544,11 +498,6 @@ function failed_upload_file(info) {
 
 .tick text{
   fill: red; 
-}
-
-.selection {
-  fill: #20C20E !important;
-
 }
 
 </style>

@@ -6,6 +6,8 @@ WORKDIR /opt/frontend
 
 ADD . .
 
-RUN npm install -g @quasar/cli && npm install
+RUN npm install -g @quasar/cli && \
+    npm install && \
+    chmod +x entrypoint.sh
 
 ENTRYPOINT ["quasar", "dev"]
