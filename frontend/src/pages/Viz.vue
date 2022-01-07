@@ -515,6 +515,7 @@ function failed_upload_file(info) {
     overflow: hidden;
   }
 
+  
   #cy {
     position: absolute;
     left: 300px;
