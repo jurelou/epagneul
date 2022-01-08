@@ -47,7 +47,6 @@ var x = d3.scaleTime()
   .range([0, w])
   .domain([timeBegin, timeEnd]);
 
-
 var xTop = d3.scaleTime()
   .range([0, w])
   .domain([timeBegin, timeEnd]);
@@ -274,7 +273,6 @@ onMounted(() => {
   var brush = d3.brushX()
     .extent([[0, 0], [w, miniHeight]])
     .on("brush", brushed);
-
   var gBrush = mini.append("g")
     .attr("class", "x brush")
     .call(brush)

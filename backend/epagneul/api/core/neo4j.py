@@ -105,7 +105,6 @@ class DataBase:
                     end_time = file_document.end_time
                 files_documents.append(file_document)
 
-
             return FolderInDB(
                 **folder_data.data()["folder"],
                 start_time=start_time,
