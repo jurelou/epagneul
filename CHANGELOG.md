@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - x
 
-## [0.3.0] - 2021-08-01
+## [0.2.0] - 2021-08-01
 
 ### Added
 - frontend: edge tippy
