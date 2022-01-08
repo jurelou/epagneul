@@ -57,4 +57,4 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 
 ## Authors
 
-* **Louis** - *Initial work* - [jurelou](https://github.com/jurelou)
+* **jurelou** - *Initial work* - [jurelou](https://github.com/jurelou)

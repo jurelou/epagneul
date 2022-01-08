@@ -1,11 +1,7 @@
 <template>
-  <q-page >
-
   
-
-    <div class="q-pa-md q-gutter-sm">
-      <q-btn  v-if="folder?.files?.length"  icon="info" color="primary" text-color="dark" style="z-index:999;" :label="'Summary for ' + folder.name" @click="infobox = true"/>
-    </div>
+  
+  <q-page>
     <q-inner-loading
         :showing="isLoading"
         label="Loading folder..."
@@ -16,21 +12,199 @@
     />
     <q-inner-loading :showing="!isLoading && !folder?.files?.length">
         <q-spinner-radio size="5.5em" color="negative" />
-        <div class="q-pa-md q-gutter-sm text-negative">
+        <div class="q-pa-md q-gutter-sm text-center text-negative">
           You don't have any files yet !
           <br>
-          Click on 'Upload new files'
+          Click on the left panel to upload your files
         </div>
     </q-inner-loading>
 
-    <div id="timeline_header" />
-    <!--
-    <div id="timeline" />
+  <q-drawer 
+      show-if-above
+      side="left"
+      behavior="desktop"
+      style="overflow: hidden; height: 100vh !important;"
+      elevated>
+
+        <q-scroll-area style="height: 79%; max-width: 300px;" v-if="folder?.files?.length">
+
+          <q-card class="no-margin column full-height">
+          <q-card-section>
+              <div class="row no-wrap items-center">
+                <div class="col text-h6 ellipsis">
+                  {{ folder.name }}
+                </div>
+                <div class="col-auto text-grey text-caption q-pt-md row no-wrap items-center">
+                  <!--<q-icon name="folder" />-->
+                  {{ folder.files.length }} File(s)
+                </div>
+              </div>
+              <!--
+              <div class="text-subtitle1">
+                $・Italian, Cafe
+              </div>
+              -->
+              <div class="text-caption text-grey">
+                Time range: {{ moment.duration(moment(folder.end_time).diff(moment(folder.start_time))).asDays().toFixed(1) }} days
+              </div>
+              <div class="text-caption">
+                First event:
+              </div>
+              <div class="text-caption text-grey">
+                {{ moment(folder.start_time).format("dddd, MMMM Do YYYY, h:mm:ss a") }}
+              </div>
+              <div class="text-caption">
+                Last event:
+              </div>
+              <div class="text-caption text-grey">
+                {{ moment(folder.end_time).format("dddd, MMMM Do YYYY, h:mm:ss a") }}
+              </div>
+
+            </q-card-section>
+
+            <q-separator inset dark />
+
+            <q-card-section>
+                <!--<div class="text-caption text-no-wrap text-bold text-justify q-mb-md">aaa</div>-->
+                      <q-select
+                        label="Select layout"
+                        transition-show="scale"
+                        transition-hide="scale"
+                        outlined
+                        v-model="selected_viz_type"
+                        :options="options"
+                        @update:model-value="onChangeVisualisationMode" 
+                      />
+
+              </q-card-section>
+
+              <q-separator inset dark />
+              
+              <q-card-section>
+
+                <q-select
+                  style="overflow: hidden;"
+                  outlined
+                  v-model="default_viz_node_options"
+                  multiple
+                  :options="viz_node_options"
+                  use-chips
+                  stack-label
+                  label="Filter edges"
+                  @update:model-value="select_viz_relationships"
+                >
+
+                  <template v-slot:selected-item="scope">
+                    <q-chip
+                      removable
+                      dense
+                      color="primary"
+                      @remove="scope.removeAtIndex(scope.index)"
+                    >
+                      {{ scope.opt.value || scope.opt }}
+                    </q-chip>
+                  </template>
+
+                </q-select>
+
+              </q-card-section>
+
+
+              <q-card-section>
+                    <q-select
+                      use-input
+                      outlined
+                      :options="available_search_users_ref"
+                      v-model="selected_user"
+                      label="Search for a user"
+                      input-debounce="0"
+                      transition-show="scale"
+                      transition-hide="scale"
+                      @update:model-value="zoomNode($event, 'user')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey">
+                            No results
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>    
+              </q-card-section>
+
+              <q-card-section>
+                    <q-select
+                      use-input
+                      outlined
+                      :options="available_search_machines_ref"
+                      v-model="selected_machine"
+                      label="Search for a machine"
+                      input-debounce="0"
+                      transition-show="scale"
+                      transition-hide="scale"
+                      @update:model-value="zoomNode($event, 'machine')"
+                    >
+                      <template v-slot:no-option>
+                        <q-item>
+                          <q-item-section class="text-grey">
+                            No results
+                          </q-item-section>
+                        </q-item>
+                      </template>
+                    </q-select>    
+              </q-card-section>
+
+          </q-card>
+        </q-scroll-area>
+
+        <q-card class="column">
+          <q-card-section>
+            <q-uploader
+              :url="base_url + '/folders/' + route.params.folder + '/upload'"
+              multiple
+              @uploaded="uploaded_files"
+              @failed="failed_upload_file"
+            />
+          </q-card-section>
+        </q-card>
+
+
+    </q-drawer>
+
+
+        <!--
+        <q-separator />
+
+             
+              <q-expansion-item switch-toggle-side popup icon="description" label="Uploaded files" :caption="folder?.files?.length + ' files'">
+                <q-separator />
+                <q-card>
+                  <q-card-section>
+                        <q-list>
+                            <q-item v-for="file in folder?.files" :key="file.identifier">
+                              <q-item-section>
+                                <q-item-label>{{ file.name }}</q-item-label>
+                                <q-item-label caption lines="2">{{ file.timestamp }}</q-item-label>
+                              </q-item-section>
+                            </q-item>
+                        </q-list>
+                  </q-card-section>
+                </q-card>
+              </q-expansion-item>
     -->
-    <div id="timeline_footer" />
-  
+
+    <div ref="resizeRef" class="timeline-main">
+      <svg ref="svgRef" class="timeline-svg">
+        <g class="x-axis" />
+        <g class="brush" />
+      </svg>
+    </div>
+
     <div id="cy" />
-    
+
+
+
+    <!--
     <q-dialog v-model="infobox" >
       <q-card style="width: 900px; max-width: 800vw;">
         <q-card-section>
@@ -71,190 +245,157 @@
         </q-card-section>
       </q-card>
     </q-dialog>
+  -->
 
-    <q-drawer 
-      show-if-above
-      side="right"
-      behavior="desktop"
-      elevated>
 
-      <q-card>
-        <q-tabs
-          v-model="tab"
-          dense
-          align="justify"
-          narrow-indicator
-          indicator-color="primary"
-          active-color="primary"
-          class="text-grey-8"
-        >
-          <q-tab icon="description" name="files" label="files" />
-          <q-tab icon="visibility" name="vizualisation" label="visualization" />
-        </q-tabs>
-        <q-separator />
-
-        <!--
-        FILES MGMT
-        -->
-        <q-tab-panels v-model="tab" animated>
-          <q-tab-panel name="files">
-
-              <q-expansion-item switch-toggle-side popup default-opened icon="upload" label="Upload new files">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                      <q-uploader
-                        :url="base_url + '/folders/' + route.params.folder + '/upload'"
-                        multiple
-                        style="max-width: 100%; overflow: hidden;"
-                        @uploaded="uploaded_files"
-                        @failed="failed_upload_file"
-                      />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-expansion-item switch-toggle-side popup icon="description" label="Uploaded files" :caption="folder?.files?.length + ' files'">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                        <q-list>
-                            <q-item v-for="file in folder?.files" :key="file.identifier">
-                              <q-item-section>
-                                <q-item-label>{{ file.name }}</q-item-label>
-                                <q-item-label caption lines="2">{{ file.timestamp }}</q-item-label>
-                              </q-item-section>
-                            </q-item>
-                        </q-list>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-          </q-tab-panel>
-
-        <!--
-        VIZ SETTINGS
-        -->
-          <q-tab-panel name="vizualisation" style="overflow: hidden;">
-            <q-list>
-            
-              <q-expansion-item switch-toggle-side popup icon="scatter_plot" label="Layout">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                  <q-select
-                    label="Layout type"
-                    transition-show="scale"
-                    transition-hide="scale"
-                    outlined
-                    v-model="selected_viz_type"
-                    :options="options"
-                    @update:model-value="onChangeVisualisationMode" 
-                  />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item> 
-
-              <q-expansion-item switch-toggle-side popup icon="open_in_full" label="Filter edges">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                    <div class="q-pa-sm q-gutter-md">
-                      <q-btn outline text-color="negative" label="unselect all" size="sm" @click="unselect_all_edges"/>
-                      <q-btn outline color="positive" label="select all" size="sm" @click="select_all_edges"/>
-                    </div>
-                    <q-option-group
-                      color="teal"  
-                      :options="viz_node_options"
-                      type="checkbox"
-                      v-model="default_viz_node_options"
-                      @update:model-value="select_viz_relationships"
-                      
-                    />
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-              <q-expansion-item switch-toggle-side popup icon="search" label="Search">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                    <q-select
-                      use-input
-                      outlined
-                      :options="available_search_users_ref"
-                      v-model="selected_machine"
-                      label="Search for a user"
-                      input-debounce="0"
-                      transition-show="scale"
-                      transition-hide="scale"
-                      @update:model-value="zoomNode"
-                      @filter="filterMachine"
-                    >
-                      <template v-slot:no-option>
-                        <q-item>
-                          <q-item-section class="text-grey">
-                            No results
-                          </q-item-section>
-                        </q-item>
-                      </template>
-                    </q-select>                  
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
-            </q-list>
-          </q-tab-panel>
-        </q-tab-panels>
-      </q-card>
-    </q-drawer>
 </q-page>
 </template>
 
 <script setup>
-import { onMounted, ref, watch  } from 'vue';
+import moment from 'moment'
+import { onMounted, watchEffect, ref, watch  } from 'vue';
 import { useRoute } from 'vue-router'
-import { useFolder } from '../hooks';
 import { useQuasar } from 'quasar'
 
+import { useFolder } from '../hooks';
 import { makeCytoscape } from './cy/cytoscape'
 import { makePopper } from './cy/events';
+import { makeTimeline } from './timeline/timeline';
+
+import * as d3 from 'd3v4';
 
 const route = useRoute()
 const $q = useQuasar()
-const tab = ref('files')
 var cy = null
 
-var timeline_chart = null
+const svgRef = ref(null);
+
+
 
 onMounted(() => {
+  const svg = d3.select(svgRef.value);
   cy = makeCytoscape(folder.value)
 
+  if (folder.value && folder.value.files.length) {
+    folder.value.nodes.forEach((node, index) => {
+      if (node.data.category == "machine")
+        available_search_machines_ref.value.push(node.data.label)
+      else if (node.data.category == "user")
+          available_search_users_ref.value.push(node.data.label)
+    })
+  }
+  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
+  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
+
+  watchEffect(() => {
+    if (!folder.value || !folder.value.files.length) return
+    makeTimeline(svg, folder.value.start_time, folder.value.end_time, onChangeTimerange)
+    start_time = new Date(folder.value.start_time)
+    end_time = new Date(folder.value.end_time)
+
+    cy.json({elements: folder.value})
+    onChangeVisualisationMode(selected_viz_type.value, false)
+    makePopper(cy)
+  })
 })
 
 const infobox = ref(false)
 const infotab = ref('machines')
 
 ///////////////////////////////////////////////////////////////
-// TIMELINE
+// UPDATE EDGES
 ///////////////////////////////////////////////////////////////
-import { make_timeline } from './timeline/timeline';
+let start_time = null
+let end_time = null
 
-let timeline_data = []
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+function onChangeTimerange(start, end) {
+  start_time = start
+  end_time = end
+  const start_time_date = (start.getTime() - start.getTimezoneOffset() * 60000) / 1000 | 0
+  const end_time_date = (end.getTime() - end.getTimezoneOffset() * 60000) / 1000 | 0
+
+  available_search_machines_ref.value = []
+  available_search_users_ref.value = []
+
+
+  cy.edges().forEach(edge => {
+    const isInTimerange = !edge.data().timestamps.every(ts => {
+      if (ts >= start_time_date && ts <= end_time_date) {
+        return false
+      }
+      return true
+    })
+
+    const edge_label = edge.data().label 
+    const edge_value = edge.data().value
+
+    const isInFilter = !default_viz_node_options.value.every(i => {
+      if (i === edge_label || i.value === edge_label) {
+        return false
+      }
+      return true
+    })
+
+    if (isInFilter && isInTimerange) {
+      edge.style("display", "element")
+    } else {
+      edge.style("display", "none")
+    }
+  
+  })
+
+  cy.nodes().forEach(n => {
+    n.style("display", "element")
+  })
+  cy.nodes().forEach(node => {
+    if (node.tippy && node.connectedEdges(":visible").size() === 0) { node.style("display", "none") }
+  })
+  cy.nodes().forEach(node => {
+    if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
+  })
+
+  cy.nodes().forEach(node => {
+    if (node.style().display == "element"){
+      const node_category = node.data().category
+      if (node_category == "machine")
+        available_search_machines_ref.value.push(node.data().label)
+      else if (node_category == "user")
+        available_search_users_ref.value.push(node.data().label)
+    }
+  })
+  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
+  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
+
+
+  onChangeVisualisationMode(selected_viz_type.value)
+
+}
+
+
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
 ///////////////////////////////////////////////////////////////
-const selected_machine = ref()
+var selected_machine = ref()
+const available_search_machines_ref = ref([])
 
-let available_search_users = []
-const available_search_users_ref = ref(available_search_users)
-
-function zoomNode(node_label) {
-  const node = cy.elements().filter(e => e.data('label') == node_label)
-
+function zoomNode(node_label, category) {
+  if (category == "user") {
+    selected_machine.value = null
+  } else if (category == "machine") {
+    selected_user.value = null
+  }
+  const node = cy.nodes().filter(e => e.data('label') == node_label && e.data('category') == category)
   cy.nodes().forEach(n => n.removeClass('highlight'))
   cy.edges().forEach(n => n.removeClass('highlight'))
   node.addClass('highlight')
-  /*
+
   node.incomers().forEach(e => { e.addClass('highlight') })
   node.outgoers().forEach(e => { e.addClass('highlight') })
-  */
+
   cy.animation({
     zoom: 1,
     center: {
@@ -263,74 +404,16 @@ function zoomNode(node_label) {
   }).play()
 }
 
-function filterMachine (val, update) {
-  if (val === '') {
-    update(() => {
-      available_search_users_ref.value = available_search_users
-    })
-    return
-  }
-  update(() => { available_search_users_ref.value = available_search_users.filter(v => v.toLowerCase().indexOf(val.toLowerCase()) > -1) })
-}
+///////////////////////////////////////////////////////////////
+// SELECT USER
+///////////////////////////////////////////////////////////////
+const selected_user = ref()
+const available_search_users_ref = ref([])
 
 ///////////////////////////////////////////////////////////////
 // FOLDER DATA
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
-
-watch(() => folder, (folder) => {
-  let v = folder.value
-  cy.json({elements: v})
-  onChangeVisualisationMode(selected_viz_type.value, false)
-  makePopper(cy)
-
-
-
-  let start_time = new Date(Date.parse(folder.value.start_time))
-  let end_time = new Date(Date.parse(folder.value.end_time))
-
-  if (!end_time || !start_time) {
-    console.log("NOPE") 
-  }
-  /*
-  let timerange = []
-  let i = 0
-  while (true) {
-    const date = new Date(start_time.getTime() +  (i*60*60*1000))
-    timerange.push(date)
-    if (date > end_time) { break }
-    if (i > 100000) {
-      console.log("Verry long timeline ... ", i)
-      break
-    }
-    i++
-  }
-  */
-  folder.value.nodes.forEach((node, index) => {
-    if (node.data.category == "user") {
-      available_search_users.push(node.data.label)
-      /*
-      let node_timeline = []
-      
-      node.data.timeline.forEach((item, index) => {
-        node_timeline.push({
-          value: item,
-          starting_time: timerange[index],
-          ending_time: timerange[index + 1],
-        })
-      })
-      timeline_data.push({
-        label: node.data.label,
-          isIncluded: true,
-          times: node_timeline
-      })
-      */
-
-    }
-  })
-//make_timeline(timeline_data)
-
-}, { deep: true })
 
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
@@ -346,33 +429,9 @@ const viz_node_options = [
   { label: '4771: Kerberos pre-authentication failed', value: '4771', color: 'green' }
 ]
 
-function select_all_edges() {
-  default_viz_node_options.value = ["4624", "4625", "4768", "4769", "4776", "4648", "4771" ]
-  select_viz_relationships(default_viz_node_options.value)
-}
-
-function unselect_all_edges() {
-  default_viz_node_options.value = []
-  select_viz_relationships([])
-}
-
 function select_viz_relationships(selected_ids) {
-  console.log(selected_ids)
-  cy.edges().forEach(edge => {
-    if (selected_ids.includes(edge.data().label))
-      edge.style("display", "element")
-    else
-      edge.style("display", "none")
-  })
-  cy.nodes().forEach(n => n.style("display", "element"))
-  cy.nodes().forEach(node => {
-    if (node.tippy && node.connectedEdges(":visible").size() === 0) { node.style("display", "none") }
-  })
-  cy.nodes().forEach(node => {
-    if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
-  })
-
-  onChangeVisualisationMode(selected_viz_type.value)
+  default_viz_node_options.value = selected_ids
+  onChangeTimerange(start_time, end_time)
 }
 
 ///////////////////////////////////////////////////////////////
@@ -419,61 +478,69 @@ function failed_upload_file(info) {
 </script>
 
 <style>
-  body {
-    overflow: hidden;
-  }
-  #cy {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    right: 0;
-    margin-top: 5%;
-    height: 95%
-  }
-  .popper-div {
-    position: relative;
-    background-color: #333;
-    color: #fff;
-    border-radius: 4px;
-    font-size: 14px;
-    line-height: 1.4;
-    outline: 0;
-    padding: 5px 9px;
-  }
-	.cxtmenu-disabled {
-		opacity: 0.333;
-	}
-  /*
-  TIMELINE
-  */
-#timeline {
-  background-color: transparent;
-  overflow-y: scroll;
-  overflow-x: hidden;
-  height: 400px;
+
+body {
+  overflow: hidden;
+}
+.q-uploader {
+  width: 250px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
-.footer {
-  fill: blue;
+.q-page-container {
+  padding-left: 0px !important;
 }
 
-.mini {
-  fill: pink;
+.q-drawer{
+  top: 0 !important;
+}
+  
+#cy {
+  position: absolute;
+  left: 300px;
+  top: 0;
+  bottom: 0;
+  right: 0;
+  margin-top: 5%;
+  height: 95%;
 }
 
-.main {
-  background-color: blue;
-  fill: blue;
+.popper-div {
+  position: relative;
+  background-color: #333;
+  color: #fff;
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.4;
+  outline: 0;
+  padding: 5px 9px;
 }
 
-.core-chart line {
-  stroke: grey;
+.cxtmenu-disabled {
+	opacity: 0.333;
 }
 
-.core-labels text {
-  text-anchor: end;
-  fill: blue;
+/* TIMELINE */
+
+.timeline-main {
+  width: 100%;
+  height: 150px;
+  margin-left: 29%;
+}
+
+.timeline-svg {
+  width: 100%;
+}
+
+.brush {
+  height: 100px;
+}
+
+.selection {
+  fill: #20C20E !important;
+  height: 30px;
+  fill-opacity: .8;
 }
 
 .domain, .tick line{
@@ -482,12 +549,8 @@ function failed_upload_file(info) {
 }
 
 .tick text{
-  fill: red; 
+  fill: grey; 
 }
 
-.selection {
-  fill: #20C20E !important;
-
-}
 
 </style>

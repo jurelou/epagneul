@@ -1,7 +1,7 @@
 from loguru import logger
 from fastapi import Depends, Request, APIRouter, UploadFile, HTTPException
 import traceback
-
+from datetime import datetime
 from epagneul.api.core.neo4j import get_database
 from epagneul.models.folders import Folder, Stats, MachineStat, UserStat
 from epagneul.models.files import File
@@ -70,8 +70,8 @@ def analyze_file(db, folder: str, file_data, filename):
 
     db.add_folder_file(folder, File(
         name=filename,
-        start_time=store.start_time,
-        end_time=store.end_time
+        start_time=int(round(datetime.timestamp(store.start_time))),
+        end_time=int(round(datetime.timestamp(store.end_time)))
     ))
 
 
