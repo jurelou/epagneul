@@ -9,13 +9,13 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - x
 
-## [0.2.0] - x
+## [0.3.0] - 2021-08-01
 
 ### Added
-- frontent: edge tippy
+- frontend: edge tippy
 
 ### Changed
-- x
+- refactor pydantic models
 
 ## [0.1.1] - 2021-08-01
 
