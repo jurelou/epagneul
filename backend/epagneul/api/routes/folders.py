@@ -5,8 +5,7 @@ from datetime import datetime
 from epagneul.api.core.neo4j import get_database
 from epagneul.models.folders import Folder, Stats, MachineStat, UserStat
 from epagneul.models.files import File
-from epagneul.models.graph import Edge, Node, EdgeData, NodeData
-from epagneul.artifacts.evtx import parse_evtx
+from epagneul.api.core.evtx import parse_evtx
 
 router = APIRouter()
 
@@ -24,19 +23,16 @@ def get_folder(folder_name: str, db = Depends(get_database)):
         raise HTTPException(status_code=404, detail="Folder not found")
 
     folder.nodes, folder.edges = db.get_graph(folder=folder_name)
-
+    """
     users_stats = []
     machines_stats = []
-    print("get nodes")
     for node in folder.nodes:
         if node.data.category == "user":
             users_stats.append(UserStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
         elif node.data.category == "machine":
             machines_stats.append(MachineStat(identifier=node.data.label, pagerank=node.data.algo_pagerank))
-    print("im done")
     folder.stats = Stats(machines_stats=machines_stats, users_stats=users_stats)
-    #identifier=node.data.label, pagerank=node.data.pagerank) for node in nodes if not node.data.is_compound
-    print("returning folder")
+    """
     return folder
 
 

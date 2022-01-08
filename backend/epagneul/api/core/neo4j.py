@@ -5,8 +5,10 @@ from datetime import datetime
 from uuid import uuid4
 from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.files import File
-from epagneul.models.graph import Edge, Node, EdgeData, NodeData
+from epagneul.models.graph import Edge, Node
 
+from epagneul.models.events import EventInDB
+from epagneul.models.observables import ObservableInDB
 
 def chunker(seq, size):
     return (seq[pos:pos + size] for pos in range(0, len(seq), size))
@@ -38,17 +40,17 @@ class DataBase:
 
 
         def  _get_or_add_node(node):
-            if node["identifier"] in nodes:
-                return nodes[node["identifier"]].data.id
+            if node["id"] in nodes:
+                return nodes[node["id"]].data.id
 
-            new_node = Node(data=NodeData(**node, id=node["identifier"]))
+            new_node = Node(data=ObservableInDB(**node))
             new_node.data.width = 10 + (len(new_node.data.label) * 11)
 
             compound_id = f"compound-{node['algo_lpa']}"
             if compound_id not in nodes:
-                nodes[compound_id] = Node(data=NodeData(id=compound_id, category="compound", bg_color="grey", bg_opacity=0.33))
+                nodes[compound_id] = Node(data=ObservableInDB(id=compound_id, category="compound", bg_color="grey", bg_opacity=0.33))
             new_node.data.parent = compound_id
-            nodes[node["identifier"]] = new_node
+            nodes[node["id"]] = new_node
 
             return new_node.data.id
 
@@ -61,12 +63,13 @@ class DataBase:
             for item in res:
                 source_id = _get_or_add_node(item["source"])
                 target_id = _get_or_add_node(item["target"])
-                rel = item["rel"]
-                rel["source"] = source_id
-                rel["target"] = target_id
-                edges.append(Edge(data=EdgeData(**rel, id=uuid4().hex)))
+                item["rel"]["source"] = source_id
+                item["rel"]["target"] = target_id
+
+                edges.append(Edge(data=EventInDB(**item["rel"], id=uuid4().hex)))
 
         return list(nodes.values()), edges
+        
         
     def create_folder(self, folder: Folder):
         with self._driver.session() as session:
@@ -133,47 +136,45 @@ class DataBase:
 
     def add_evtx_store(self, store, folder: str):
         print("ADD STORE NOW")
-        timeline, detectn, cfdetect = store.get_change_finder()
+        #timeline, detectn, cfdetect = store.get_change_finder()
 
-        users = [
-            {
-                "identifier": f"user-{u.identifier}",
-                "label": u.username,
-                "tip": f"id: {u.identifier}<br>Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
-                "border_color": "#e76f51" if u.is_admin else "#e9c46a",
-                "bg_opacity": 0.0,
-                "shape": "ellipse",
-                "category": "user",
-                "timeline": timeline[i],
-                "algo_change_finder": cfdetect[u.identifier],
-            } for i, u in enumerate(store.users.values())    
-        ]
-        
-        machines = [{
-            "identifier": f"machine-{m.identifier}",
-            "label": m.hostname or m.ip,
-            "tip": f"id: {m.identifier}<br>Hostname: {m.hostname}<br>IP: {m.ip}",
-            "border_color": "#2a9d8f",
-            "bg_opacity": 0.0,
-            "shape": "rectangle",
-            "category": "machine"
-        } for m in store.machines.values() ]
+        users = [ ObservableInDB(
+            id=f"user-{u.id}",
+            label=u.username,
+            tip="<br>".join([f"{k}: {v}" for k, v in u.dict().items()]),
+            border_color="#e76f51" if u.is_admin else "#e9c46a",
+            bg_opacity=0.0,
+            shape="ellipse",
+            category="user"
+        ).dict() for u in store.users.values()]
+        #timeline=timeline[i]
+        #"algo_change_finder": cfdetect[u.id],
 
-        events = [{
-            "source": f"user-{e.source}",
-            "target": f"machine-{e.target}",
-            "label": e.event_id,
-            "logon_type": e.logon_type,
-            "timestamps": [int(round(datetime.timestamp(ts))) for ts in e.timestamps],
-            #"tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
-        } for e in store.logon_events.values() ]
+        machines = [ObservableInDB(
+            id=f"machine-{m.id}",
+            label=m.hostname or m.ip,
+            tip="<br>".join([f"{k}: {v}" for k, v in m.dict().items()]),
+            border_color="#2a9d8f",
+            bg_opacity=0.0,
+            shape="rectangle",
+            category="machine"
+        ).dict() for m in store.machines.values()]
 
-        print("DONE FMT")
+        events = []
+        for e in store.logon_events.values():
+            event = EventInDB(
+                **e.dict(exclude={"timestamps"}),
+                timestamps=[ int(round(datetime.timestamp(ts))) for ts in e.timestamps ],
+                tip="<br>".join([f"{k}: {v}" for k, v in e.dict(exclude={"source", "target", "timestamps"}).items()])
+            ).dict()
+            event["timestamps"] = list(event["timestamps"])
+            events.append(event)
+    
         with self._driver.session() as session:
             print("Adding users")
             session.run(
                 "UNWIND $users as row "
-                "MERGE (user: User {folder: $folder, identifier: row.identifier}) "
+                "MERGE (user: User {folder: $folder, id: row.id}) "
                 "ON CREATE SET user += row ",
                 users=users,
                 folder=folder,
@@ -181,7 +182,7 @@ class DataBase:
             print("Adding machines")
             session.run(
                 "UNWIND $machines as row "
-                "MERGE (machine: Machine {folder: $folder, identifier: row.identifier}) "
+                "MERGE (machine: Machine {folder: $folder, id: row.id}) "
                 "ON CREATE SET machine += row",
                 machines=machines,
                 folder=folder,
@@ -190,13 +191,12 @@ class DataBase:
             for chunk in chunker(events, 10000):
                 session.run(
                     "UNWIND $events as row "
-                    "MATCH (user: User {identifier: row.source, folder: $folder}), (machine: Machine {identifier: row.target, folder: $folder}) "
+                    "MATCH (user: User {id: row.source, folder: $folder}), (machine: Machine {id: row.target, folder: $folder}) "
                     "CREATE (user)-[rel: LogonEvent]->(machine) "
                     "SET rel += row",
                     events=chunk,
                     folder=folder,
                 )
-            print("done")
 
     def make_lpa(self, folder: str):
         with self._driver.session() as session:

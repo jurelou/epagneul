@@ -10,6 +10,7 @@
         label-style="font-size: 1.1em"
         size="5.5em"
     />
+    
     <q-inner-loading :showing="!isLoading && !folder?.files?.length">
         <q-spinner-radio size="5.5em" color="negative" />
         <div class="q-pa-md q-gutter-sm text-center text-negative">
@@ -173,24 +174,12 @@
 
 
         <!--
-        <q-separator />
-
-             
-              <q-expansion-item switch-toggle-side popup icon="description" label="Uploaded files" :caption="folder?.files?.length + ' files'">
-                <q-separator />
-                <q-card>
-                  <q-card-section>
-                        <q-list>
                             <q-item v-for="file in folder?.files" :key="file.identifier">
                               <q-item-section>
                                 <q-item-label>{{ file.name }}</q-item-label>
                                 <q-item-label caption lines="2">{{ file.timestamp }}</q-item-label>
                               </q-item-section>
                             </q-item>
-                        </q-list>
-                  </q-card-section>
-                </q-card>
-              </q-expansion-item>
     -->
 
     <div ref="resizeRef" class="timeline-main">
@@ -201,52 +190,6 @@
     </div>
 
     <div id="cy" />
-
-
-
-    <!--
-    <q-dialog v-model="infobox" >
-      <q-card style="width: 900px; max-width: 800vw;">
-        <q-card-section>
-        <q-tabs
-          v-model="infotab"
-          dense
-          class="text-grey"
-          active-color="primary"
-          indicator-color="primary"
-          align="justify"
-        >
-          <q-tab name="machines" label="Machines" />
-          <q-tab name="alarms" label="Alarms" />
-          <q-tab name="movies" label="Movies" />
-        </q-tabs>
-
-        <q-separator />
-        <q-tab-panels v-model="infotab" animated>
-          <q-tab-panel name="machines">
-            <div class="text-h6">machines</div>
-              <div v-for="i in folder?.nodes" v-bind:key="i">
-                {{ i }}
-              </div>
-          </q-tab-panel>
-
-          <q-tab-panel name="alarms">
-            <div class="text-h6">Alarms</div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.sdqssssssssssssssss
-          </q-tab-panel>
-
-          <q-tab-panel name="movies">
-            <div class="text-h6">Movies</div>
-            Lorem ipsum dolor sit amet consectetur adipisicing elit.
-          </q-tab-panel>
-        </q-tab-panels>
-          
-
-        </q-card-section>
-      </q-card>
-    </q-dialog>
-  -->
-
 
 </q-page>
 </template>
@@ -271,36 +214,24 @@ var cy = null
 const svgRef = ref(null);
 
 
-
 onMounted(() => {
   const svg = d3.select(svgRef.value);
   cy = makeCytoscape(folder.value)
 
-  if (folder.value && folder.value.files.length) {
-    folder.value.nodes.forEach((node, index) => {
-      if (node.data.category == "machine")
-        available_search_machines_ref.value.push(node.data.label)
-      else if (node.data.category == "user")
-          available_search_users_ref.value.push(node.data.label)
-    })
-  }
-  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
-  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
-
   watchEffect(() => {
     if (!folder.value || !folder.value.files.length) return
-    makeTimeline(svg, folder.value.start_time, folder.value.end_time, onChangeTimerange)
-    start_time = new Date(folder.value.start_time)
-    end_time = new Date(folder.value.end_time)
 
     cy.json({elements: folder.value})
-    onChangeVisualisationMode(selected_viz_type.value, false)
     makePopper(cy)
+
+    makeTimeline(svg, folder.value.start_time, folder.value.end_time, updateSelectedNodes)
+    start_time = new Date(folder.value.start_time)
+    end_time = new Date(folder.value.end_time)
+    updateSelectedNodes(start_time, end_time)
+
+    onChangeVisualisationMode(selected_viz_type.value, false)
   })
 })
-
-const infobox = ref(false)
-const infotab = ref('machines')
 
 ///////////////////////////////////////////////////////////////
 // UPDATE EDGES
@@ -312,7 +243,8 @@ function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-function onChangeTimerange(start, end) {
+function updateSelectedNodes(start, end) {
+  console.log("update node selection")
   start_time = start
   end_time = end
   const start_time_date = (start.getTime() - start.getTimezoneOffset() * 60000) / 1000 | 0
@@ -357,7 +289,6 @@ function onChangeTimerange(start, end) {
   cy.nodes().forEach(node => {
     if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
   })
-
   cy.nodes().forEach(node => {
     if (node.style().display == "element"){
       const node_category = node.data().category
@@ -369,7 +300,6 @@ function onChangeTimerange(start, end) {
   })
   available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
   available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
-
 
   onChangeVisualisationMode(selected_viz_type.value)
 
@@ -415,6 +345,10 @@ const available_search_users_ref = ref([])
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
+watch(() => folder, (folder) => {
+  console.log("watch folkder")
+})
+
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
@@ -431,7 +365,7 @@ const viz_node_options = [
 
 function select_viz_relationships(selected_ids) {
   default_viz_node_options.value = selected_ids
-  onChangeTimerange(start_time, end_time)
+  updateSelectedNodes(start_time, end_time)
 }
 
 ///////////////////////////////////////////////////////////////
@@ -441,7 +375,6 @@ const options = [ 'fcose', 'cose-bilkent', 'breadthfirst', 'klay', 'grid', 'circ
 const selected_viz_type = ref('fcose');
 
 function onChangeVisualisationMode(layout_name, animate = true) {
-  console.log("ANIMATE")
   cy.layout({
     name: layout_name,
     randomize: true,

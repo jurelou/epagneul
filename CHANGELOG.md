@@ -1,6 +1,30 @@
 # Changelog
 All notable changes to this project will be documented in this file.
 
+## [x.x.x] - x
+
+### Added
+- x
+
+### Changed
+- x
+
+## [0.2.0] - 2021-08-01
+
+### Added
+- frontend: edge tippy
+
+### Changed
+- refactor pydantic models
+
+## [0.1.1] - 2021-08-01
+
+### Added
+- Rounded logo in the `README.md`
+
+### Changed
+- Fixed assignation to constant variables in `Home.vue`
+
 ## [0.1.0] - 2021-08-01
 
 ### Added
