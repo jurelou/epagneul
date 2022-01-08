@@ -105,6 +105,7 @@ class DataBase:
                     end_time = file_document.end_time
                 files_documents.append(file_document)
 
+
             return FolderInDB(
                 **folder_data.data()["folder"],
                 start_time=start_time,
@@ -164,7 +165,7 @@ class DataBase:
             "target": f"machine-{e.target}",
             "label": e.event_id,
             "logon_type": e.logon_type,
-            "timestamps": [datetime.timestamp(ts) for ts in e.timestamps],
+            "timestamps": [int(round(datetime.timestamp(ts))) for ts in e.timestamps],
             #"tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
         } for e in store.logon_events.values() ]
 

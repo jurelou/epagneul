@@ -1,4 +1,5 @@
 import * as d3 from 'd3v4';
+import moment from 'moment'
 
 const top = 25
 const right = window.innerWidth / 3
@@ -20,17 +21,17 @@ function daysBetween(d1,d2){
   let days = toUTC(d2) - toUTC(d1) || 0;
   return days / 24 / 60 / 60 / 1000;
 }
-export function makeTimeline(svgRef, start_time, end_time) {
-  const timeStart = new Date(Date.parse(start_time))
-  const timeEnd = new Date(Date.parse(end_time))
+export function makeTimeline(svgRef, start_time, end_time, callback) {
+  console.log(start_time)
+  const timeStart =   new Date(start_time)
+  const timeEnd =  new Date(end_time)
+
+  console.log("mmmmm", timeStart, timeEnd)
 
   if (!timeStart || ! timeEnd) return
-  var x = d3.scaleTime()
-    .range([0, 1000])
-    .domain([timeStart, timeEnd])
 
   var x = d3.scaleTime()
-    .range([0, w - 1])
+    .range([0, w])
     .domain([timeStart, timeEnd]);
 
   var days = daysBetween(timeStart, timeEnd);
@@ -48,10 +49,6 @@ export function makeTimeline(svgRef, start_time, end_time) {
       .ticks(d3[tTick])
       .tickFormat(d=>d3.timeFormat(tFormat)(d))
 
-  function updateGraph(start, end) {
-    console.log("HERE UPGRADE GRAPH !", start, end)
-  }
-
   let timeout = null
 
   function brushed() {
@@ -61,13 +58,10 @@ export function makeTimeline(svgRef, start_time, end_time) {
       timeout = true
     } else {
       clearTimeout(timeout)
-      timeout = setTimeout(updateGraph.bind(null, timeSelection[0], timeSelection[1]), 500)
+      timeout = setTimeout(callback.bind(null, timeSelection[0], timeSelection[1]), 500)
     }
   }
 
-  var x = d3.scaleTime()
-    .range([0, w])
-    .domain([timeStart, timeEnd]);
 
   svgRef
     .select(".x-axis")

@@ -264,50 +264,116 @@ import { makeTimeline } from './timeline/timeline';
 
 import * as d3 from 'd3v4';
 
-
 const route = useRoute()
 const $q = useQuasar()
-const tab = ref('files')
 var cy = null
 
-var timeline_chart = null
-
-const timelineFooterRef = ref(null);
-
-
 const svgRef = ref(null);
+
 
 
 onMounted(() => {
   const svg = d3.select(svgRef.value);
   cy = makeCytoscape(folder.value)
 
-  watchEffect(() => {
-    if (!folder.value || !folder.value.files.length) return
-    makeTimeline(svg, folder.value.start_time, folder.value.end_time)
-
-    cy.json({elements: folder.value})
-    onChangeVisualisationMode(selected_viz_type.value, false)
-    makePopper(cy)
+  if (folder.value && folder.value.files.length) {
     folder.value.nodes.forEach((node, index) => {
       if (node.data.category == "machine")
         available_search_machines_ref.value.push(node.data.label)
       else if (node.data.category == "user")
-        available_search_users_ref.value.push(node.data.label)
+          available_search_users_ref.value.push(node.data.label)
     })
+  }
+  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
+  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
 
+  watchEffect(() => {
+    if (!folder.value || !folder.value.files.length) return
+    makeTimeline(svg, folder.value.start_time, folder.value.end_time, onChangeTimerange)
+    start_time = new Date(folder.value.start_time)
+    end_time = new Date(folder.value.end_time)
+
+    cy.json({elements: folder.value})
+    onChangeVisualisationMode(selected_viz_type.value, false)
+    makePopper(cy)
   })
-
-
 })
 
 const infobox = ref(false)
 const infotab = ref('machines')
 
+///////////////////////////////////////////////////////////////
+// UPDATE EDGES
+///////////////////////////////////////////////////////////////
+let start_time = null
+let end_time = null
 
-///////////////////////////////////////////////////////////////
-// TIMELINE
-///////////////////////////////////////////////////////////////
+function onlyUnique(value, index, self) {
+  return self.indexOf(value) === index;
+}
+
+function onChangeTimerange(start, end) {
+  start_time = start
+  end_time = end
+  const start_time_date = (start.getTime() - start.getTimezoneOffset() * 60000) / 1000 | 0
+  const end_time_date = (end.getTime() - end.getTimezoneOffset() * 60000) / 1000 | 0
+
+  available_search_machines_ref.value = []
+  available_search_users_ref.value = []
+
+
+  cy.edges().forEach(edge => {
+    const isInTimerange = !edge.data().timestamps.every(ts => {
+      if (ts >= start_time_date && ts <= end_time_date) {
+        return false
+      }
+      return true
+    })
+
+    const edge_label = edge.data().label 
+    const edge_value = edge.data().value
+
+    const isInFilter = !default_viz_node_options.value.every(i => {
+      if (i === edge_label || i.value === edge_label) {
+        return false
+      }
+      return true
+    })
+
+    if (isInFilter && isInTimerange) {
+      edge.style("display", "element")
+    } else {
+      edge.style("display", "none")
+    }
+  
+  })
+
+  cy.nodes().forEach(n => {
+    n.style("display", "element")
+  })
+  cy.nodes().forEach(node => {
+    if (node.tippy && node.connectedEdges(":visible").size() === 0) { node.style("display", "none") }
+  })
+  cy.nodes().forEach(node => {
+    if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
+  })
+
+  cy.nodes().forEach(node => {
+    if (node.style().display == "element"){
+      const node_category = node.data().category
+      if (node_category == "machine")
+        available_search_machines_ref.value.push(node.data().label)
+      else if (node_category == "user")
+        available_search_users_ref.value.push(node.data().label)
+    }
+  })
+  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
+  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
+
+
+  onChangeVisualisationMode(selected_viz_type.value)
+
+}
 
 
 ///////////////////////////////////////////////////////////////
@@ -364,22 +430,8 @@ const viz_node_options = [
 ]
 
 function select_viz_relationships(selected_ids) {
-  console.log(selected_ids)
-  cy.edges().forEach(edge => {
-    if (selected_ids.includes(edge.data().label))
-      edge.style("display", "element")
-    else
-      edge.style("display", "none")
-  })
-  cy.nodes().forEach(n => n.style("display", "element"))
-  cy.nodes().forEach(node => {
-    if (node.tippy && node.connectedEdges(":visible").size() === 0) { node.style("display", "none") }
-  })
-  cy.nodes().forEach(node => {
-    if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
-  })
-
-  onChangeVisualisationMode(selected_viz_type.value)
+  default_viz_node_options.value = selected_ids
+  onChangeTimerange(start_time, end_time)
 }
 
 ///////////////////////////////////////////////////////////////
@@ -427,6 +479,9 @@ function failed_upload_file(info) {
 
 <style>
 
+body {
+  overflow: hidden;
+}
 .q-uploader {
   width: 250px;
   margin-left: 10px;
@@ -440,7 +495,6 @@ function failed_upload_file(info) {
 .q-drawer{
   top: 0 !important;
 }
- 
   
 #cy {
   position: absolute;
@@ -479,9 +533,6 @@ function failed_upload_file(info) {
   width: 100%;
 }
 
-.x-axis {
-}
-
 .brush {
   height: 100px;
 }
@@ -489,6 +540,7 @@ function failed_upload_file(info) {
 .selection {
   fill: #20C20E !important;
   height: 30px;
+  fill-opacity: .8;
 }
 
 .domain, .tick line{
@@ -497,7 +549,8 @@ function failed_upload_file(info) {
 }
 
 .tick text{
-  fill: red; 
+  fill: grey; 
 }
+
 
 </style>
