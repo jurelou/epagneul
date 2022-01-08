@@ -1,11 +1,10 @@
 import tippy from 'tippy.js';
 
 export function makePopper(cy) {
-    cy.ready(() => cy.nodes().forEach((node) => {
+    cy.ready(() => cy.elements().forEach((node) => {
         const data = node.data()
-        if (!data.tip) {
-            return
-        }
+        if (!data.tip) { return }
+
         node.tippy = tippy(document.createElement('div'), {
         getReferenceClientRect: node.popperRef().getBoundingClientRect,
         trigger: 'manual',    
@@ -17,10 +16,10 @@ export function makePopper(cy) {
           }
         });    
     }));
-    cy.nodes().unbind('mouseover');
-    cy.nodes().unbind('mouseout');
-    cy.nodes().bind('mouseover', (event) => event.target.tippy && event.target.tippy.show());
-    cy.nodes().bind('mouseout', (event) => event.target.tippy && event.target.tippy.hide());
+    cy.elements().unbind('mouseover');
+    cy.elements().unbind('mouseout');
+    cy.elements().bind('mouseover', (event) => event.target.tippy && event.target.tippy.show());
+    cy.elements().bind('mouseout', (event) => event.target.tippy && event.target.tippy.hide());
 }
 
 export function makeEvents(cy) {

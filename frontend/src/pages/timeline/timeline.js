@@ -1,5 +1,4 @@
 import * as d3 from 'd3v4';
-import moment from 'moment'
 
 const top = 25
 const right = window.innerWidth / 3
@@ -22,11 +21,8 @@ function daysBetween(d1,d2){
   return days / 24 / 60 / 60 / 1000;
 }
 export function makeTimeline(svgRef, start_time, end_time, callback) {
-  console.log(start_time)
   const timeStart =   new Date(start_time)
   const timeEnd =  new Date(end_time)
-
-  console.log("mmmmm", timeStart, timeEnd)
 
   if (!timeStart || ! timeEnd) return
 

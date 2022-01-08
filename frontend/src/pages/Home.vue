@@ -16,7 +16,7 @@ var remove_folder_name = null;
 
 function click_delete_dialog(folder_name) {
   remove_folder_name = folder_name
-  this.confirm_delete_dialog = true
+  confirm_delete_dialog.value = true
 }
 
 function delete_dialog() {
@@ -29,7 +29,7 @@ function add_new_folder() {
   if (new_folder_name.value && new_folder_name.value.length >= 3 ) {
     createFolder(new_folder_name.value).then(r => {
       refetch.value()
-      this.create_folder_dialog = false
+      create_folder_dialog.value = false
     })
   }
 }
