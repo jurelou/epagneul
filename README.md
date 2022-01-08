@@ -1,7 +1,13 @@
 <p align="center"><img width="100" src="https://github.com/jurelou/epagneul/blob/dev-0.2.0/images/logo-rounded.png?raw=true" alt="Vue logo"></p>
 <h2 align="center">epagneul</h2>
 
-Epagneul is a tool to visualize and investigate windows event logs.
+<div align="center">
+ <p>
+  <strong>
+    Epagneul is a tool to visualize and investigate windows event logs.
+  </strong>
+ </p>
+</div>
 
 ![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
 
