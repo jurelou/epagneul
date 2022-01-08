@@ -1,6 +1,13 @@
-# epagneul
+<p align="center"><img width="100" src="https://github.com/jurelou/epagneul/blob/dev-0.2.0/images/logo-rounded.png?raw=true" alt="Vue logo"></p>
+<h2 align="center">epagneul</h2>
 
-Epagneul is a tool to visualize and investigate windows event logs.
+<div align="center">
+ <p>
+  <strong>
+    Epagneul is a tool to visualize and investigate windows event logs.
+  </strong>
+ </p>
+</div>
 
 ![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
 
@@ -27,7 +34,7 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 - [ ] Better SID corelations
 - [ ] hidden markov chains
 - [x] Label propagation algorithm / detect communities
-- [ ] PageRank
+- [x] PageRank
 - [ ] Add missing events IDs (sysmon)
 - [ ] Display a timeline of logons
 - [ ] check out: https://github.com/ahmedkhlief/APT-Hunter
@@ -40,8 +47,6 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 ## Known bugs
 
 - [ ] When multiple files are uploaded, properties will be overwritten
-- [ ] Duplicate machine nodes (maybe also users)
-- [ ] Zoom on a given user is buggy
 
 ## References:
 
@@ -51,7 +56,8 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 ## Built With
 
 * [Vue.js](https://v3.vuejs.org/) - The web framework used
-* [Cytoscape.js](https://js.cytoscape.org/) - Library used for visualisation and analysis
+* [Cytoscape.js](https://js.cytoscape.org/) - Library used for graph visualisation and analysis
+* [d3](https://d3js.org/) - Used to display the timeline
 * [neo4j](https://neo4j.com/) - Backend database
 * [evtx](https://github.com/omerbenamram/evtx) - Parser for the windows XML EventLog format
 
