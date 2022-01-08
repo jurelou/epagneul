@@ -224,14 +224,14 @@ onMounted(() => {
     cy.json({elements: folder.value})
     makePopper(cy)
 
-    makeTimeline(svg, folder.value.start_time, folder.value.end_time, onChangeTimerange)
+    makeTimeline(svg, folder.value.start_time, folder.value.end_time, updateSelectedNodes)
     start_time = new Date(folder.value.start_time)
     end_time = new Date(folder.value.end_time)
+    updateSelectedNodes(start_time, end_time)
 
     onChangeVisualisationMode(selected_viz_type.value, false)
   })
 })
-
 
 ///////////////////////////////////////////////////////////////
 // UPDATE EDGES
@@ -243,8 +243,8 @@ function onlyUnique(value, index, self) {
   return self.indexOf(value) === index;
 }
 
-function onChangeTimerange(start, end) {
-  console.log("change timerange")
+function updateSelectedNodes(start, end) {
+  console.log("update node selection")
   start_time = start
   end_time = end
   const start_time_date = (start.getTime() - start.getTimezoneOffset() * 60000) / 1000 | 0
@@ -290,7 +290,6 @@ function onChangeTimerange(start, end) {
     if (!node.tippy && node.descendants(":visible").length == 0) { node.style("display", "none") }
   })
   cy.nodes().forEach(node => {
-      console.log("================")
     if (node.style().display == "element"){
       const node_category = node.data().category
       if (node_category == "machine")
@@ -366,7 +365,7 @@ const viz_node_options = [
 
 function select_viz_relationships(selected_ids) {
   default_viz_node_options.value = selected_ids
-  onChangeTimerange(start_time, end_time)
+  updateSelectedNodes(start_time, end_time)
 }
 
 ///////////////////////////////////////////////////////////////

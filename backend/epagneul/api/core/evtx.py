@@ -147,9 +147,6 @@ class Datastore:
                         break
                 else:
                     known_users[user.username] = user
-
-
-
         self.users = known_users
 
         for event in self.logon_events.values():
@@ -163,8 +160,10 @@ class Datastore:
                     if event.source == u.sid or event.source == u.username:
                         event.source = u.id
                         break
+            event.source = f"user-{event.source}"
+            event.target = f"machine-{event.target}"
             for ts in event.timestamps:
-                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_id, event.source])
+                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
 
 
     def add_timestamp(self, timestamp):
@@ -178,6 +177,11 @@ class Datastore:
         elif self.end_time < timestamp:
             self.end_time = timestamp
 
+    def get_timeline():
+        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
+        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
+        return count_set.drop_duplicates()
+
     def get_change_finder(self):
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
         count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
@@ -190,7 +194,7 @@ class Datastore:
         #self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
     def add_logon_event(self, event):
-        identifier = f"{event.source}-{event.target}-{event.event_id}-{event.logon_type}"
+        identifier = f"{event.source}-{event.event_type}-{event.target}"
         if identifier in self.logon_events:
             self.logon_events[identifier].timestamps.add(event.timestamp)
         else:
@@ -333,14 +337,15 @@ def parse_evtx(file_data):
 
             if user_id and machine_id:
                 store.add_logon_event(SingleTimestampLogonEvent(
-                    timestamp=event.timestamp,
-                    event_id=event.event_id,
                     source=user_id,
                     target=machine_id,
+                    event_type=event.event_id,
+
+                    timestamp=event.timestamp,
+
                     logon_type=logon_type,
                     status=status
-                    )
-                )
+                ))
     return store
 
 def adetection(counts, users, starttime, tohours):
@@ -397,24 +402,23 @@ if __name__ == "__main__":
     db = get_database()
     db.bootstrap()
     db.rm()
-    
+    """
     store = parse_evtx("/data/filtered.evtx")
-
     store.finalize()
-
-    #a, b, c = store.get_change_finder()
+    """
 
     """
+    #a, b, c = store.get_change_finder()
     #start_day = datetime.datetime(*store.start_time.timetuple()[:3]).strftime("%Y-%m-%d")
     start_day = datetime.datetime.strptime("2021-12-09", "%Y-%m-%d") #temp
     learn_hmm(ml_frame, users, start_day)
     predictions = predict_hmm(ml_frame, users, start_day)
     print(predictions)
-    """
     db.add_evtx_store(store, folder="a")
 
     db.make_lpa("a")
     db.make_pagerank("a")
+    """
 
 
 """

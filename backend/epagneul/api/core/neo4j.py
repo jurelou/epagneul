@@ -70,6 +70,7 @@ class DataBase:
 
         return list(nodes.values()), edges
         
+        
     def create_folder(self, folder: Folder):
         with self._driver.session() as session:
             session.run(
@@ -135,7 +136,7 @@ class DataBase:
 
     def add_evtx_store(self, store, folder: str):
         print("ADD STORE NOW")
-        timeline, detectn, cfdetect = store.get_change_finder()
+        #timeline, detectn, cfdetect = store.get_change_finder()
 
         users = [ ObservableInDB(
             id=f"user-{u.id}",
@@ -148,21 +149,7 @@ class DataBase:
         ).dict() for u in store.users.values()]
         #timeline=timeline[i]
         #"algo_change_finder": cfdetect[u.id],
-        """
-        users = [
-            {
-                "id": f"user-{u.id}",
-                "label": u.username,
-                "tip": f"id: {u.id}<br>Username: {u.username}<br>SID: {u.sid}<br>Role: {u.role}<br>Domain: {u.domain}",
-                "border_color": "#e76f51" if u.is_admin else "#e9c46a",
-                "bg_opacity": 0.0,
-                "shape": "ellipse",
-                "category": "user",
-                "timeline": timeline[i],
-                "algo_change_finder": cfdetect[u.id],
-            } for i, u in enumerate(store.users.values())    
-        ]
-        """
+
         machines = [ObservableInDB(
             id=f"machine-{m.id}",
             label=m.hostname or m.ip,
@@ -173,16 +160,16 @@ class DataBase:
             category="machine"
         ).dict() for m in store.machines.values()]
 
-        events = [{
-            "source": f"user-{e.source}",
-            "target": f"machine-{e.target}",
-            "label": e.event_id,
-            "logon_type": e.logon_type,
-            "timestamps": [int(round(datetime.timestamp(ts))) for ts in e.timestamps],
-            "tip": "<br>".join([f"{k}: {v}" for k, v in e.dict(exclude={"source", "target", "timestamps"}).items()])
-            #"tip": f"Event ID: {e.event_id}<br>Logon type: {e.logon_type}<br>Logon status: {e.status}<br>Timestamp: {e.timestamp}",
-        } for e in store.logon_events.values() ]
-
+        events = []
+        for e in store.logon_events.values():
+            event = EventInDB(
+                **e.dict(exclude={"timestamps"}),
+                timestamps=[ int(round(datetime.timestamp(ts))) for ts in e.timestamps ],
+                tip="<br>".join([f"{k}: {v}" for k, v in e.dict(exclude={"source", "target", "timestamps"}).items()])
+            ).dict()
+            event["timestamps"] = list(event["timestamps"])
+            events.append(event)
+    
         with self._driver.session() as session:
             print("Adding users")
             session.run(
