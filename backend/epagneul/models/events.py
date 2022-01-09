@@ -10,6 +10,11 @@ class BaseEvent(BaseModel):
     target: str
     timestamps: set = set()
     event_type: int
+    count: int = 1
+
+    class Config:
+        extra = "allow"
+
 
     class Config:
         extra = "allow"

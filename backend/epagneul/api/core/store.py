@@ -1,5 +1,5 @@
 from epagneul.models.events import BaseEvent
-from epagneul.models.observables import Machine, User
+from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -20,18 +20,22 @@ KNOWN_ADMIN_SIDS_ENDINGS = {
 }
 
 
-def get_role_from_sid(user):
+def is_local_admin(user):
     if not user.sid:
         return False, None
 
     for sid, role in KNOWN_ADMIN_SIDS.items():
         if sid == user.sid:
             return True, role
+    return False, None
+
+def is_domain_admin(user):
+    if not user.sid:
+        return False, None
 
     for sid, role in KNOWN_ADMIN_SIDS_ENDINGS.items():
         if user.sid.endswith(sid):
             return True, role
-
     return False, None
 
 
@@ -52,9 +56,7 @@ def merge_models(a, b):
         except TypeError:
             pass
 
-        if a_field_value:
-            print(f"DOUBLE VALUE ({b_field}) {a_field_value} -- {b_field_value}")
-        else:
+        if not a_field_value:
             setattr(a, b_field, b_field_value)
     return a
 
@@ -161,6 +163,7 @@ class Datastore:
         identifier = f"{event.source}-{event.event_type}-{event.target}"
         if identifier in self.logon_events:
             self.logon_events[identifier].timestamps.add(event.timestamp)
+            self.logon_events[identifier].count = self.logon_events[identifier].count + 1
         else:
             self.logon_events[identifier] = BaseEvent(
                 **event.dict(exclude={"timestamp", "timestamps"}),
@@ -194,11 +197,21 @@ class Datastore:
         else:
             return None
 
-        user.is_admin, user.role = get_role_from_sid(user)
+        local_admin, role = is_local_admin(user)
+        if not local_admin:
+            domain_admin, role = is_domain_admin(user)
 
+        if role:
+            user.role = role
+        
         if user.id in self.users:
             self.users[user.id] = merge_models(self.users[user.id], user)
         else:
             self.users[user.id] = user
+
+        if local_admin:
+            self.users[user.id] = LocalAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
+        elif domain_admin or user.is_admin:
+            self.users[user.id] = DomainAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
 
         return user.id

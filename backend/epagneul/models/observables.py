@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, root_validator
 
 
 class NonEmptyValuesModel(BaseModel):
@@ -15,31 +15,39 @@ class NonEmptyValuesModel(BaseModel):
 class Observable(NonEmptyValuesModel):
     id: Optional[str]
 
-
-class ObservableInDB(Observable):
-    label: str = ""
     category: str
 
-    bg_opacity: float = 1.0
-    bg_color: str = "black"
-    border_color: str = "black"
+    label: str = ""
+    bg_opacity: float = 0.33
+    bg_color: str = "grey"
+    border_color: str = "grey"
     parent: str = None
     shape: str = "circle"
     tip: str = ""
     width: int = 50
     height: int = 50
-
+    border_width: int = 5
     algo_lpa: int = -1
+
     # algo_pagerank: float = 0.15
     # timeline: List[int] = []
     # algo_change_finder: ??
 
-
 class Machine(Observable):
+    category: str = "machine"
     hostname: Optional[str]
     domain: Optional[str]
     ip: Optional[str]
     ips: set = set()
+
+    shape: str = "round-rectangle"
+    border_color: str = "#4361ee"
+
+    def finalize(self):
+        self.id = f"{self.category}-{self.id}"
+        self.label = self.hostname or self.ip
+        self.tip = f"Hostname: {self.hostname}<br>Domain: {self.domain}<br>Ip(s): {', '.join(self.ips)}"
+
 
     def add_ip(self, ip: str):
         if not ip or ip in ("::1", "127.0.0.1"):
@@ -59,13 +67,23 @@ class Machine(Observable):
             return ""
         return v
 
-
 class User(Observable):
+    category: str = "user"
+
     username: Optional[str]
     sid: Optional[str]
     domain: Optional[str]
     is_admin: bool = False
-    role: str = "???"
+    role: str = ""
+    border_width: int = 2
+
+    shape: str = "circle"
+    border_color: str = "#fcf45d"
+
+    def finalize(self):
+        self.id = f"{self.category}-{self.id}"
+        self.tip = f"Username: {self.username}<br>SID: {self.sid}<br>Domain: {self.domain}<br>Role: {self.role}"
+        self.label = self.username
 
     @validator("sid")
     def validate_sid(cls, value):
@@ -84,3 +102,17 @@ class User(Observable):
         if not v or v == "anonymous logon":
             return ""
         return v
+
+class LocalAdminUser(User):
+    is_admin: bool = True
+    role: str = "admin"
+
+    border_color: str = "#e85d04"
+    border_width: int = 4
+
+class DomainAdminUser(User):
+    is_admin: bool = True
+    role: str = "admin"
+
+    border_width: int = 6
+    border_color: str = "#e31632"

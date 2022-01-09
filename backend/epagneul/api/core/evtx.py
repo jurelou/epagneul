@@ -35,6 +35,7 @@ supported_events = {
     4771: parse_basic_logons,
     4776: parse_basic_logons,
 }
+
 USEFULL_EVENTS_STR = re.compile(
     f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
 )

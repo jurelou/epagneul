@@ -205,7 +205,7 @@ onMounted(() => {
 
   watchEffect(() => {
     if (!folder.value || !folder.value.files.length) return
-
+    console.log(folder.value)
     cy.json({elements: folder.value})
     makePopper(cy)
 

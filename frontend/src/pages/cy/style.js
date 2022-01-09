@@ -13,7 +13,7 @@ export const style = cytoscape.stylesheet()
             "background-clip": "none",
             "background-repeat": "no-repeat",
             //"border-style": "solid",
-            "border-width": 3,
+            "border-width": "data(border_width)",
             "text-valign": "center",
 
             "font-size": "20",
@@ -25,19 +25,19 @@ export const style = cytoscape.stylesheet()
         "shape": "data(shape)"
     })
     .selector('node:selected').css({
-        "border-width": 4,
-        "background-opacity": 0.9,
+        "border-width": 2,
+        "background-opacity": 0.7,
         "background-color": "data(border_color)",
-        "border-color": "#58a6ff",
+        "border-color": "green",
         "color": "black",
         "text-outline-width": 0        
 
     })
     .selector('node.highlight').css({
         "border-width": 2,
-        "background-opacity": 0.9,
+        "background-opacity": 0.7,
         "background-color": "data(border_color)",
-        "border-color": "#58a6ff",
+        "border-color": "green",
 
         "color": "black",
         "text-outline-width": 0
@@ -56,13 +56,13 @@ export const style = cytoscape.stylesheet()
             "target-arrow-color": "grey",
         })
     .selector('edge:selected').css({
-            "width": "6",
-            "line-color": "#58a6ff",
-            "target-arrow-color": "#58a6ff",
+            "width": "3",
+            "line-color": "green",
+            "target-arrow-color": "green",
         })
     .selector('edge.highlight').css({
-        "width": "8",
+        "width": "3",
         "font-size": "20",
-        "line-color": "#58a6ff",
-        "target-arrow-color": "#58a6ff",
-    })
+        "line-color": "green",
+        "target-arrow-color": "green",
+})

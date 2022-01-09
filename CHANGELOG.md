@@ -9,6 +9,12 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - x
 
+## [0.3.1] - 2021-09-01
+
+### Changed
+- Fixed visual bugs
+- Fixed a bug where admin users were not correctly displayed
+
 ## [0.3.0] - 2021-09-01
 
 ### Added
