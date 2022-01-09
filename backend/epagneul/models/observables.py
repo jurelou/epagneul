@@ -46,7 +46,7 @@ class Machine(Observable):
     def finalize(self):
         self.id = f"{self.category}-{self.id}"
         self.label = self.hostname or self.ip
-        self.tip = f"Hostname: {self.hostname}<br>Domain: {self.domain}<br>Ip(s): {self.ips}"
+        self.tip = f"Hostname: {self.hostname}<br>Domain: {self.domain}<br>Ip(s): {', '.join(self.ips)}"
 
 
     def add_ip(self, ip: str):

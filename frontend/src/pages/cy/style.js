@@ -26,7 +26,7 @@ export const style = cytoscape.stylesheet()
     })
     .selector('node:selected').css({
         "border-width": 2,
-        "background-opacity": 0.6,
+        "background-opacity": 0.7,
         "background-color": "data(border_color)",
         "border-color": "green",
         "color": "black",
@@ -35,7 +35,7 @@ export const style = cytoscape.stylesheet()
     })
     .selector('node.highlight').css({
         "border-width": 2,
-        "background-opacity": 1,
+        "background-opacity": 0.7,
         "background-color": "data(border_color)",
         "border-color": "green",
 

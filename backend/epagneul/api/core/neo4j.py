@@ -75,8 +75,6 @@ class DataBase:
                 rel["tip"] = rel["tip"] + f"<br>Count: {rel['count']}"
                 edges.append(Edge(data=EventInDB(**item["rel"], id=uuid4().hex)))
 
-        print("!!!!", nodes.values())
-        print("!!!", edges)
         return list(nodes.values()), edges
 
     def create_folder(self, folder: Folder):
