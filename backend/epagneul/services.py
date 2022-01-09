@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
+from pathlib import PosixPath
 from typing import Optional
-from pathlib import Path, PosixPath
 
-from loguru import logger
-
-from epagneul.common import exceptions
 from epagneul.artifacts import ALL_ARTIFACTS
+from epagneul.common import exceptions
+from loguru import logger
 
 ARTIFACTS = {artifact.name: artifact() for artifact in ALL_ARTIFACTS}
 

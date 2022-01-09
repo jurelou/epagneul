@@ -1,13 +1,13 @@
-from fastapi import FastAPI
-from fastapi.exceptions import RequestValidationError
-from starlette.exceptions import HTTPException
-
-from epagneul.common import settings
-from epagneul.api.routes import router
-from epagneul.api.core.events import stop_app_handler, start_app_handler
+from epagneul.api.core.events import start_app_handler, stop_app_handler
 from epagneul.api.errors.http_error import http_error_handler
 from epagneul.api.errors.validation_error import http_422_error
-from fastapi.middleware.cors import CORSMiddleware 
+from epagneul.api.routes import router
+from epagneul.common import settings
+from fastapi import FastAPI
+from fastapi.exceptions import RequestValidationError
+from fastapi.middleware.cors import CORSMiddleware
+from starlette.exceptions import HTTPException
+
 
 def get_app() -> FastAPI:
     """Configure and returns a FastAPI application."""

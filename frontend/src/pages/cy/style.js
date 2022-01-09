@@ -47,7 +47,7 @@ export const style = cytoscape.stylesheet()
             "text-outline-color": "black",
             "text-outline-width": 1,
 
-            "content": "data(label)",
+            "content": "data(event_type)",
             "font-size": "17",
             "curve-style": "bezier",
             "target-arrow-shape": "triangle",

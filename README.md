@@ -7,9 +7,18 @@
     Epagneul is a tool to visualize and investigate windows event logs.
   </strong>
  </p>
+ <p>
+  <img width="100" src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336">
+  <img width="100" src="https://img.shields.io/badge/code%20style-black-000000.svg">
+  <img width="100" src="http://www.mypy-lang.org/static/mypy_badge.svg">
+  <img width="100" src="https://img.shields.io/badge/security-bandit-yellow.svg">
+  <img width="100" src="https://img.shields.io/badge/python-3.8-blue">
+ </p>
 </div>
 
+
 ![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
+
 
 ## Deployment
 
@@ -18,6 +27,21 @@ Requires docker and docker-compose to be installed.
 ### Installing
 
 ```
+make
+```
+
+## Offline deployment
+
+On a machine connected to internet, build an offline release:
+
+```
+make release
+```
+This will create a `release` folder containing ready to go docker images.
+Copy the project to your air gapped machine then run:
+
+```
+make load
 make
 ```
 
@@ -31,22 +55,21 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 
 ## todos
 
-- [ ] Better SID corelations
-- [ ] hidden markov chains
-- [x] Label propagation algorithm / detect communities
+- [x] Better SID corelations
+- [x] add edge tips
+- [x] Label propagation algorithm
 - [x] PageRank
-- [ ] Add missing events IDs (sysmon)
-- [ ] Display a timeline of logons
+- [x] Add missing events IDs (sysmon)
+- [ ] hidden markov chains
+- [ ] Display a timeline of logons / at least a summary graph
 - [ ] check out: https://github.com/ahmedkhlief/APT-Hunter
 - [ ] Import data from ELK / splunk
 - [ ] detect communities using louvain
-- [ ] make a nice logo https://github.com/reiinakano/arbitrary-image-stylization-tfjs
-- [ ] add edge tippy
 - [ ] Proper conversion of known SIDS / security principals, ...
 
 ## Known bugs
 
-- [ ] When multiple files are uploaded, properties will be overwritten
+- The `count` value on edges does not update based on the selected timeline
 
 ## References:
 

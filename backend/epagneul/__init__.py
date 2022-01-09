@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
 
-from loguru import logger
-
 from epagneul.common import settings
+from loguru import logger
 
 log_format = (
     "<level>{level: <6}</level> | <cyan>{name}:{line}</cyan> - <level>{message}</level>"

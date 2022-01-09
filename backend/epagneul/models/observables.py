@@ -1,6 +1,7 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Any
-import datetime
+from typing import Optional
+
+from pydantic import BaseModel, validator
+
 
 class NonEmptyValuesModel(BaseModel):
     def __setattr__(self, name, value):
@@ -10,8 +11,10 @@ class NonEmptyValuesModel(BaseModel):
     class Config:
         validate_assignment = True
 
+
 class Observable(NonEmptyValuesModel):
-    id : Optional[str]
+    id: Optional[str]
+
 
 class ObservableInDB(Observable):
     label: str = ""
@@ -27,9 +30,9 @@ class ObservableInDB(Observable):
     height: int = 50
 
     algo_lpa: int = -1
-    #algo_pagerank: float = 0.15
-    #timeline: List[int] = []
-    #algo_change_finder: ??
+    # algo_pagerank: float = 0.15
+    # timeline: List[int] = []
+    # algo_change_finder: ??
 
 
 class Machine(Observable):
@@ -49,11 +52,10 @@ class Machine(Observable):
             return ""
         return value
 
-
     @validator("hostname", "domain")
     def validate_hostname(cls, value):
         v = value.split("@")[0].strip().lower().strip("$")
-        if not v or v == "localhost":
+        if not v or v in "localhost":
             return ""
         return v
 
@@ -67,7 +69,7 @@ class User(Observable):
 
     @validator("sid")
     def validate_sid(cls, value):
-        if value and value in ("S-1-0-0", "S-1-5-7"): # skip Anonymous Logon
+        if value and value in ("S-1-0-0", "S-1-5-7"):  # skip Anonymous Logon
             return ""
         return value
 

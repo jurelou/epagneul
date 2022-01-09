@@ -1,10 +1,11 @@
-from typing import Callable
 import os
-from epagneul.common import settings
-from loguru import logger
-from fastapi import FastAPI
+from typing import Callable
 
 from epagneul.api.core.neo4j import db
+from epagneul.common import settings
+from fastapi import FastAPI
+from loguru import logger
+
 
 def start_app_handler(app: FastAPI) -> Callable:
     """Fastapi start handler."""
@@ -13,11 +14,10 @@ def start_app_handler(app: FastAPI) -> Callable:
         if not os.path.exists(settings.evidences_folder):
             try:
                 os.makedirs(settings.evidences_folder)
-            except OSError as exc: # Guard against race condition
+            except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
         db.bootstrap()
-
 
     return start_app
 
