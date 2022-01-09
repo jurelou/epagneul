@@ -16,6 +16,10 @@ class BaseEvent(BaseModel):
         extra = "allow"
 
 
+    class Config:
+        extra = "allow"
+
+
 class LogonEvent(BaseEvent):
     timestamp: datetime.datetime
 
@@ -35,4 +39,5 @@ class SysmonLogonEvent(LogonEvent):
 
 class EventInDB(BaseEvent):
     tip: str
+    count: int = 1
     id: Optional[UUID]

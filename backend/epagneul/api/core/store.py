@@ -209,7 +209,6 @@ class Datastore:
         else:
             self.users[user.id] = user
 
-
         if local_admin:
             self.users[user.id] = LocalAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
         elif domain_admin or user.is_admin:

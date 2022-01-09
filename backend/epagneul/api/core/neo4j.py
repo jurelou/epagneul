@@ -1,6 +1,7 @@
 from datetime import datetime
 from uuid import uuid4
 
+
 from epagneul.common import settings
 from epagneul.models.events import EventInDB
 from epagneul.models.files import File
