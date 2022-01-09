@@ -10,6 +10,7 @@ class BaseEvent(BaseModel):
     target: str
     timestamps: set = set()
     event_type: int
+    count: int = 1
 
     class Config:
         extra = "allow"
@@ -34,5 +35,4 @@ class SysmonLogonEvent(LogonEvent):
 
 class EventInDB(BaseEvent):
     tip: str
-    count: int = 1
     id: Optional[UUID]

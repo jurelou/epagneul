@@ -6,7 +6,7 @@ from epagneul.models.events import EventInDB
 from epagneul.models.files import File
 from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.graph import Edge, Node
-from epagneul.models.observables import ObservableInDB
+from epagneul.models.observables import Observable
 from neo4j import GraphDatabase
 
 
@@ -45,17 +45,14 @@ class DataBase:
             if node["id"] in nodes:
                 return nodes[node["id"]].data.id
 
-            new_node = Node(data=ObservableInDB(**node))
+            new_node = Node(data=Observable(**node))
             new_node.data.width = 10 + (len(new_node.data.label) * 11)
-
             compound_id = f"compound-{node['algo_lpa']}"
             if compound_id not in nodes:
                 nodes[compound_id] = Node(
-                    data=ObservableInDB(
+                    data=Observable(
                         id=compound_id,
-                        category="compound",
-                        bg_color="grey",
-                        bg_opacity=0.33,
+                        category="compound"
                     )
                 )
             new_node.data.parent = compound_id
@@ -78,6 +75,8 @@ class DataBase:
                 rel["tip"] = rel["tip"] + f"<br>Count: {rel['count']}"
                 edges.append(Edge(data=EventInDB(**item["rel"], id=uuid4().hex)))
 
+        print("!!!!", nodes.values())
+        print("!!!", edges)
         return list(nodes.values()), edges
 
     def create_folder(self, folder: Folder):
@@ -143,36 +142,19 @@ class DataBase:
             )
 
     def add_evtx_store(self, store, folder: str):
-        print("ADD STORE NOW")
         # timeline, detectn, cfdetect = store.get_change_finder()
 
-        users = [
-            ObservableInDB(
-                id=f"user-{u.id}",
-                label=u.username,
-                tip="<br>".join([f"{k}: {v}" for k, v in u.dict().items()]),
-                border_color="#e76f51" if u.is_admin else "#e9c46a",
-                bg_opacity=0.0,
-                shape="ellipse",
-                category="user",
-            ).dict()
-            for u in store.users.values()
-        ]
-        # timeline=timeline[i]
-        # "algo_change_finder": cfdetect[u.id],
+        users = []
+        for u in store.users.values():
+            u.finalize()
+            users.append(u.dict())
 
-        machines = [
-            ObservableInDB(
-                id=f"machine-{m.id}",
-                label=m.hostname or m.ip,
-                tip="<br>".join([f"{k}: {v}" for k, v in m.dict().items()]),
-                border_color="#2a9d8f",
-                bg_opacity=0.0,
-                shape="rectangle",
-                category="machine",
-            ).dict()
-            for m in store.machines.values()
-        ]
+        machines = []
+        for m in store.machines.values():
+            m.finalize()
+            machine_dict = m.dict()
+            machine_dict["ips"] = list(m.ips)
+            machines.append(machine_dict)
 
         events = []
         for e in store.logon_events.values():
@@ -183,7 +165,7 @@ class DataBase:
                     [
                         f"{k}: {v}"
                         for k, v in e.dict(
-                            exclude={"source", "target", "timestamps"}
+                            exclude={"source", "target", "timestamps", "count"}
                         ).items()
                     ]
                 ),
@@ -215,7 +197,7 @@ class DataBase:
                     "MATCH (user: User {id: row.source, folder: $folder}), (machine: Machine {id: row.target, folder: $folder}) "
                     "MERGE (user)-[rel: LogonEvent {event_type: row.event_type}]->(machine) "
                     "ON CREATE SET rel += row "
-                    "ON MATCH SET rel.count = rel.count + 1",
+                    "ON MATCH SET rel.count = rel.count + row.count",
                     events=chunk,
                     folder=folder,
                 )

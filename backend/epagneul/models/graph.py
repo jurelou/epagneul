@@ -1,5 +1,5 @@
 from epagneul.models.events import EventInDB
-from epagneul.models.observables import ObservableInDB
+from epagneul.models.observables import Observable
 from pydantic import BaseModel
 
 
@@ -8,4 +8,4 @@ class Edge(BaseModel):
 
 
 class Node(BaseModel):
-    data: ObservableInDB
+    data: Observable

@@ -87,3 +87,39 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 ## Authors
 
 * **jurelou** - *Initial work* - [jurelou](https://github.com/jurelou)
+
+
+
+algo_lpa: -1
+bg_color: "grey"
+bg_opacity: 0.33
+border_color: "black"
+category: "compound"
+height: 50
+id: "compound-53"
+label: ""
+parent: null
+shape: "circle"
+tip: ""
+width: 50
+
+algo_lpa: 53
+bg_color: "black"
+bg_opacity: 0
+border_color: "#e76f51"
+category: "user"
+height: 50
+id: "user-S-1-5-21-2876717875-1306692281-808468597-1001"
+label: "louis"
+parent: "compound-53"
+shape: "ellipse"
+
+
+algo_lpa: 16
+bg_color: "black"
+bg_opacity: 1
+border_color: "black"
+category: "user"
+height: 50
+id: "user-S-1-5-21-2876717875-1306692281-808468597-1001"
+label: "Username: louis<br>SID: S-1-5-21-2876717875-1306692281-808468597-1001<br>Domain: heaven<br>Role: admin"
