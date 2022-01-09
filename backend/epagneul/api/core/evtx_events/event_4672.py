@@ -1,5 +1,6 @@
 from epagneul.models.observables import User
 
+
 def parse_4672(store, event):
     """EventID 4672: Special privileges assigned to new logon."""
     user = User(is_admin=True, role="")

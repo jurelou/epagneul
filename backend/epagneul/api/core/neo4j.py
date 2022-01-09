@@ -1,22 +1,25 @@
-from neo4j import GraphDatabase
-from epagneul.common import settings
 from datetime import datetime
-
 from uuid import uuid4
-from epagneul.models.folders import Folder, FolderInDB
-from epagneul.models.files import File
-from epagneul.models.graph import Edge, Node
 
+from epagneul.common import settings
 from epagneul.models.events import EventInDB
+from epagneul.models.files import File
+from epagneul.models.folders import Folder, FolderInDB
+from epagneul.models.graph import Edge, Node
 from epagneul.models.observables import ObservableInDB
+from neo4j import GraphDatabase
+
 
 def chunker(seq, size):
-    return (seq[pos:pos + size] for pos in range(0, len(seq), size))
+    return (seq[pos : pos + size] for pos in range(0, len(seq), size))
 
 
 class DataBase:
     def __init__(self):
-        self._driver = GraphDatabase.driver(settings.neo4j.endpoint, auth=(settings.neo4j.username, settings.neo4j.password))
+        self._driver = GraphDatabase.driver(
+            settings.neo4j.endpoint,
+            auth=(settings.neo4j.username, settings.neo4j.password),
+        )
 
     def bootstrap(self):
         print("bootstrap db")
@@ -38,8 +41,7 @@ class DataBase:
         nodes = {}
         edges = []
 
-
-        def  _get_or_add_node(node):
+        def _get_or_add_node(node):
             if node["id"] in nodes:
                 return nodes[node["id"]].data.id
 
@@ -48,7 +50,14 @@ class DataBase:
 
             compound_id = f"compound-{node['algo_lpa']}"
             if compound_id not in nodes:
-                nodes[compound_id] = Node(data=ObservableInDB(id=compound_id, category="compound", bg_color="grey", bg_opacity=0.33))
+                nodes[compound_id] = Node(
+                    data=ObservableInDB(
+                        id=compound_id,
+                        category="compound",
+                        bg_color="grey",
+                        bg_opacity=0.33,
+                    )
+                )
             new_node.data.parent = compound_id
             nodes[node["id"]] = new_node
 
@@ -58,7 +67,7 @@ class DataBase:
             res = session.run(
                 "MATCH (source {folder: $folder})-[rel:LogonEvent]->(target {folder: $folder}) "
                 "return source, PROPERTIES(rel) as rel, target",
-                folder=folder
+                folder=folder,
             )
             for item in res:
                 source_id = _get_or_add_node(item["source"])
@@ -71,28 +80,26 @@ class DataBase:
 
         return list(nodes.values()), edges
 
-        
     def create_folder(self, folder: Folder):
         with self._driver.session() as session:
             session.run(
-                "CREATE (folder: Folder) SET folder += $data",
-                data=folder.dict()
+                "CREATE (folder: Folder) SET folder += $data", data=folder.dict()
             )
 
     def get_folders(self):
         with self._driver.session() as session:
             result = session.run("MATCH (folder: Folder) return folder")
-            return [ Folder(**folder["folder"]) for folder in result.data()]
+            return [Folder(**folder["folder"]) for folder in result.data()]
 
     def get_folder(self, folder_id):
         with self._driver.session() as session:
             folder = session.run(
                 "MATCH (folder: Folder {identifier: $folder_identifier}) return folder",
-                folder_identifier=folder_id
+                folder_identifier=folder_id,
             )
             files = session.run(
                 "MATCH (file: File)-[r]->(folder: Folder {identifier: $folder_identifier}) return collect(file)",
-                folder_identifier=folder_id
+                folder_identifier=folder_id,
             )
             folder_data = folder.single()
             if not folder_data:
@@ -113,14 +120,14 @@ class DataBase:
                 **folder_data.data()["folder"],
                 start_time=start_time,
                 end_time=end_time,
-                files=files_documents
+                files=files_documents,
             )
 
     def remove_folder(self, folder_id):
         with self._driver.session() as session:
             result = session.run(
                 "MATCH (folder: Folder {identifier: $identifier}) DETACH DELETE folder",
-                identifier=folder_id
+                identifier=folder_id,
             )
             return result
 
@@ -132,45 +139,58 @@ class DataBase:
                 "SET file += $data "
                 "CREATE (file)-[:DEPENDS]->(folder) ",
                 data=file.dict(),
-                folder_identifier=folder_id
+                folder_identifier=folder_id,
             )
 
     def add_evtx_store(self, store, folder: str):
         print("ADD STORE NOW")
-        #timeline, detectn, cfdetect = store.get_change_finder()
+        # timeline, detectn, cfdetect = store.get_change_finder()
 
-        users = [ ObservableInDB(
-            id=f"user-{u.id}",
-            label=u.username,
-            tip="<br>".join([f"{k}: {v}" for k, v in u.dict().items()]),
-            border_color="#e76f51" if u.is_admin else "#e9c46a",
-            bg_opacity=0.0,
-            shape="ellipse",
-            category="user"
-        ).dict() for u in store.users.values()]
-        #timeline=timeline[i]
-        #"algo_change_finder": cfdetect[u.id],
+        users = [
+            ObservableInDB(
+                id=f"user-{u.id}",
+                label=u.username,
+                tip="<br>".join([f"{k}: {v}" for k, v in u.dict().items()]),
+                border_color="#e76f51" if u.is_admin else "#e9c46a",
+                bg_opacity=0.0,
+                shape="ellipse",
+                category="user",
+            ).dict()
+            for u in store.users.values()
+        ]
+        # timeline=timeline[i]
+        # "algo_change_finder": cfdetect[u.id],
 
-        machines = [ObservableInDB(
-            id=f"machine-{m.id}",
-            label=m.hostname or m.ip,
-            tip="<br>".join([f"{k}: {v}" for k, v in m.dict().items()]),
-            border_color="#2a9d8f",
-            bg_opacity=0.0,
-            shape="rectangle",
-            category="machine"
-        ).dict() for m in store.machines.values()]
+        machines = [
+            ObservableInDB(
+                id=f"machine-{m.id}",
+                label=m.hostname or m.ip,
+                tip="<br>".join([f"{k}: {v}" for k, v in m.dict().items()]),
+                border_color="#2a9d8f",
+                bg_opacity=0.0,
+                shape="rectangle",
+                category="machine",
+            ).dict()
+            for m in store.machines.values()
+        ]
 
         events = []
         for e in store.logon_events.values():
             event = EventInDB(
                 **e.dict(exclude={"timestamps"}),
-                timestamps=[ int(round(datetime.timestamp(ts))) for ts in e.timestamps ],
-                tip="<br>".join([f"{k}: {v}" for k, v in e.dict(exclude={"source", "target", "timestamps"}).items()])
+                timestamps=[int(round(datetime.timestamp(ts))) for ts in e.timestamps],
+                tip="<br>".join(
+                    [
+                        f"{k}: {v}"
+                        for k, v in e.dict(
+                            exclude={"source", "target", "timestamps"}
+                        ).items()
+                    ]
+                ),
             ).dict()
             event["timestamps"] = list(event["timestamps"])
             events.append(event)
-    
+
         with self._driver.session() as session:
             print("Adding users")
             session.run(
@@ -208,8 +228,8 @@ class DataBase:
                     writeProperty: 'algo_lpa'
                 }})
             """
-            r = session.run(query)
-    
+            session.run(query)
+
     def make_pagerank(self, folder: str):
         with self._driver.session() as session:
             query = f"""CALL gds.pageRank.write({{
@@ -219,8 +239,11 @@ class DataBase:
                     writeProperty: 'algo_pagerank'
                 }})
             """
-            r = session.run(query)
+            session.run(query)
+
+
 db = DataBase()
+
 
 def get_database():
     return db

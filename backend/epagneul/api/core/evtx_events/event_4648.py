@@ -1,5 +1,6 @@
-from epagneul.models.observables import User, Machine
 from epagneul.models.events import NativeLogonEvent
+from epagneul.models.observables import Machine, User
+
 
 def parse_4648(store, event):
     user = User()
@@ -26,13 +27,14 @@ def parse_4648(store, event):
     user_id = store.add_user(user)
     machine_id = store.add_machine(machine)
 
-
     if user_id and machine_id:
-        store.add_logon_event(NativeLogonEvent(
-            source=user_id,
-            target=machine_id,
-            event_type=event.event_id,
-            timestamp=event.timestamp,
-            logon_type=logon_type,
-            status=status
-        ))
+        store.add_logon_event(
+            NativeLogonEvent(
+                source=user_id,
+                target=machine_id,
+                event_type=event.event_id,
+                timestamp=event.timestamp,
+                logon_type=logon_type,
+                status=status,
+            )
+        )

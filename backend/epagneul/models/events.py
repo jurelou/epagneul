@@ -1,7 +1,9 @@
-from pydantic import BaseModel, Field, validator
-from typing import Optional, List, Any
 import datetime
+from typing import Optional
 from uuid import UUID
+
+from pydantic import BaseModel
+
 
 class BaseEvent(BaseModel):
     source: str
@@ -12,12 +14,15 @@ class BaseEvent(BaseModel):
     class Config:
         extra = "allow"
 
+
 class LogonEvent(BaseEvent):
     timestamp: datetime.datetime
+
 
 class NativeLogonEvent(LogonEvent):
     logon_type: int = 0
     status: str = ""
+
 
 class SysmonLogonEvent(LogonEvent):
     initiated: Optional[bool]
@@ -26,8 +31,8 @@ class SysmonLogonEvent(LogonEvent):
     destination_port: Optional[int]
     source_port: Optional[int]
 
+
 class EventInDB(BaseEvent):
     tip: str
     count: int = 1
     id: Optional[UUID]
-

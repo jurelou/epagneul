@@ -7,9 +7,18 @@
     Epagneul is a tool to visualize and investigate windows event logs.
   </strong>
  </p>
+ <p>
+  <img width="100" src="https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336">
+  <img width="100" src="https://img.shields.io/badge/code%20style-black-000000.svg">
+  <img width="100" src="http://www.mypy-lang.org/static/mypy_badge.svg">
+  <img width="100" src="https://img.shields.io/badge/security-bandit-yellow.svg">
+  <img width="100" src="https://img.shields.io/badge/python-3.8-blue">
+ </p>
 </div>
 
+
 ![layout](https://github.com/jurelou/epagneul/blob/master/images/layout.png?raw=true)
+
 
 ## Deployment
 

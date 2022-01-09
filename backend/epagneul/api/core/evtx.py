@@ -1,20 +1,17 @@
 # -*- coding: utf-8 -*-
-from evtx import PyEvtxParser
-from lxml import etree
-from loguru import logger
-import re
 import datetime
-from epagneul.common import settings
-from typing import Optional, List, Any
-from pydantic import BaseModel
-import pandas as pd
-import numpy as np
+import re
+from typing import Any
 
+# import pandas as pd
+import numpy as np
 from epagneul.api.core.changefinder import ChangeFinder
 from epagneul.api.core.store import Datastore
+from evtx import PyEvtxParser
+from loguru import logger
+from lxml import etree
+from pydantic import BaseModel
 
-from epagneul.models.observables import Machine, User
-from epagneul.models.events import NativeLogonEvent
 
 class Event(BaseModel):
     event_id: int
@@ -22,10 +19,10 @@ class Event(BaseModel):
     data: Any
 
 
-from epagneul.api.core.evtx_events.event_4672 import parse_4672
+from epagneul.api.core.evtx_events.basic_logon_events import parse_basic_logons
 from epagneul.api.core.evtx_events.event_3 import parse_3
 from epagneul.api.core.evtx_events.event_4648 import parse_4648
-from epagneul.api.core.evtx_events.basic_logon_events import parse_basic_logons
+from epagneul.api.core.evtx_events.event_4672 import parse_4672
 
 supported_events = {
     3: parse_3,
@@ -38,28 +35,41 @@ supported_events = {
     4771: parse_basic_logons,
     4776: parse_basic_logons,
 }
-USEFULL_EVENTS_STR = re.compile(f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE)
+USEFULL_EVENTS_STR = re.compile(
+    f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
+)
+
 
 def to_lxml(record_xml):
-    rep_xml = record_xml.replace("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "")
+    rep_xml = record_xml.replace(
+        'xmlns="http://schemas.microsoft.com/win/2004/08/events/event"', ""
+    )
     fin_xml = rep_xml.encode("utf-8")
     parser = etree.XMLParser(resolve_entities=False)
     return etree.fromstring(fin_xml, parser)
 
+
 def convert_logtime(logtime, tzone=1):
-    tzless = re.sub('[^0-9-:\s]', ' ', logtime.split(".")[0]).strip()
+    tzless = re.sub("[^0-9-:\s]", " ", logtime.split(".")[0]).strip()
     try:
-        return datetime.datetime.strptime(tzless, "%Y-%m-%d %H:%M:%S") + datetime.timedelta(hours=tzone)
+        return datetime.datetime.strptime(
+            tzless, "%Y-%m-%d %H:%M:%S"
+        ) + datetime.timedelta(hours=tzone)
     except:
-        return datetime.datetime.strptime(tzless, "%Y-%m-%dT%H:%M:%S") + datetime.timedelta(hours=tzone)
+        return datetime.datetime.strptime(
+            tzless, "%Y-%m-%dT%H:%M:%S"
+        ) + datetime.timedelta(hours=tzone)
+
 
 def get_event_from_xml(raw_xml_event):
     xml_event = to_lxml(raw_xml_event)
     return Event(
         event_id=int(xml_event.xpath("/Event/System/EventID")[0].text),
-        #computer_name=xml_event.xpath("/Event/System/Computer")[0].text,
-        timestamp=convert_logtime(xml_event.xpath("/Event/System/TimeCreated")[0].get("SystemTime")),
-        data=xml_event.xpath("/Event/EventData/Data")
+        # computer_name=xml_event.xpath("/Event/System/Computer")[0].text,
+        timestamp=convert_logtime(
+            xml_event.xpath("/Event/System/TimeCreated")[0].get("SystemTime")
+        ),
+        data=xml_event.xpath("/Event/EventData/Data"),
     )
 
 
@@ -71,7 +81,7 @@ def parse_evtx(file_data):
 
     for r in evtx.records():
         data = r["data"]
-        #if not "<Channel>Security" in data:
+        # if not "<Channel>Security" in data:
         #    continue
         if not re.search(USEFULL_EVENTS_STR, data):
             continue
@@ -84,13 +94,20 @@ def parse_evtx(file_data):
 
     return store
 
+
 def adetection(counts, users, starttime, tohours):
     count_array = np.zeros((6, len(users), tohours + 1))
     count_all_array = []
     result_array = []
     cfdetect = {}
     for _, event in counts.iterrows():
-        column = int((datetime.datetime.strptime(event["dates"], "%Y-%m-%d  %H:%M:%S") - starttime).total_seconds() / 3600)
+        column = int(
+            (
+                datetime.datetime.strptime(event["dates"], "%Y-%m-%d  %H:%M:%S")
+                - starttime
+            ).total_seconds()
+            / 3600
+        )
         row = users.index(event["username"])
         # count_array[row, column, 0] = count_array[row, column, 0] + count
         if event["eventid"] == 4624:
@@ -138,8 +155,8 @@ if __name__ == "__main__":
     db = get_database()
     db.bootstrap()
     db.rm()
-    #store = parse_evtx("/data/files/")
-    #store.finalize()
+    # store = parse_evtx("/data/files/")
+    # store.finalize()
 
     """
     #a, b, c = store.get_change_finder()

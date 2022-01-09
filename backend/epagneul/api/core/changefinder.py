@@ -1,7 +1,8 @@
-#taken from https://github.com/shunsukeaihara/changefinder/blob/master/changefinder/__init__.py
+# taken from https://github.com/shunsukeaihara/changefinder/blob/master/changefinder/__init__.py
+import math
+
 import numpy as np
 import scipy as sp
-import math
 
 
 def LevinsonDurbin(r, lpcOrder):
@@ -12,9 +13,9 @@ def LevinsonDurbin(r, lpcOrder):
     e = np.zeros(lpcOrder + 1, dtype=np.float64)
 
     a[0] = 1.0
-    a[1] = - r[1] / r[0]
+    a[1] = -r[1] / r[0]
     e[1] = r[0] + r[1] * a[1]
-    lam = - r[1] / r[0]
+    lam = -r[1] / r[0]
 
     for k in range(1, lpcOrder):
         lam = 0.0
@@ -42,29 +43,39 @@ class _SDAR_1Dim(object):
         self._mu = np.random.random()
         self._sigma = np.random.random()
         self._order = order
-        self._c = np.random.random(self._order+1) / 100.0
+        self._c = np.random.random(self._order + 1) / 100.0
 
     def update(self, x, term):
         assert len(term) >= self._order, "term must be order or more"
         term = np.array(term)
         self._mu = (1.0 - self._r) * self._mu + self._r * x
         for i in range(1, self._order + 1):
-            self._c[i] = (1 - self._r) * self._c[i] + self._r * (x - self._mu) * (term[-i] - self._mu)
-        self._c[0] = (1-self._r)*self._c[0]+self._r * (x-self._mu)*(x-self._mu)
+            self._c[i] = (1 - self._r) * self._c[i] + self._r * (x - self._mu) * (
+                term[-i] - self._mu
+            )
+        self._c[0] = (1 - self._r) * self._c[0] + self._r * (x - self._mu) * (
+            x - self._mu
+        )
         what, e = LevinsonDurbin(self._c, self._order)
-        xhat = np.dot(-what[1:], (term[::-1] - self._mu))+self._mu
-        self._sigma = (1-self._r)*self._sigma + self._r * (x-xhat) * (x-xhat)
-        return -math.log(math.exp(-0.5*(x-xhat)**2/self._sigma)/((2 * math.pi)**0.5*self._sigma**0.5)), xhat
+        xhat = np.dot(-what[1:], (term[::-1] - self._mu)) + self._mu
+        self._sigma = (1 - self._r) * self._sigma + self._r * (x - xhat) * (x - xhat)
+        return (
+            -math.log(
+                math.exp(-0.5 * (x - xhat) ** 2 / self._sigma)
+                / ((2 * math.pi) ** 0.5 * self._sigma ** 0.5)
+            ),
+            xhat,
+        )
 
 
 class _ChangeFinderAbstract(object):
     def _add_one(self, one, ts, size):
         ts.append(one)
-        if len(ts) == size+1:
+        if len(ts) == size + 1:
             ts.pop(0)
 
     def _smoothing(self, ts):
-        return sum(ts)/float(len(ts))
+        return sum(ts) / float(len(ts))
 
 
 class ChangeFinder(_ChangeFinderAbstract):
@@ -72,7 +83,7 @@ class ChangeFinder(_ChangeFinderAbstract):
         assert order > 0, "order must be 1 or more."
         assert smooth > 2, "term must be 3 or more."
         self._smooth = smooth
-        self._smooth2 = int(round(self._smooth/2.0))
+        self._smooth2 = int(round(self._smooth / 2.0))
         self._order = order
         self._r = r
         self._ts = []
@@ -94,9 +105,10 @@ class ChangeFinder(_ChangeFinderAbstract):
         if len(self._first_scores) == self._smooth:  # 平滑化
             second_target = self._smoothing(self._first_scores)
         if second_target and len(self._smoothed_scores) == self._order:  # 第二段学習
-            score, predict2 = self._sdar_second.update(second_target, self._smoothed_scores)
-            self._add_one(score,
-                          self._second_scores, self._smooth2)
+            score, predict2 = self._sdar_second.update(
+                second_target, self._smoothed_scores
+            )
+            self._add_one(score, self._second_scores, self._smooth2)
         if second_target:
             self._add_one(second_target, self._smoothed_scores, self._order)
         if len(self._second_scores) == self._smooth2:

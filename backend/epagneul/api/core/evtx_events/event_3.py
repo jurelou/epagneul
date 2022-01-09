@@ -1,5 +1,6 @@
-from epagneul.models.observables import User, Machine
 from epagneul.models.events import SysmonLogonEvent
+from epagneul.models.observables import Machine, User
+
 
 def parse_3(store, event):
 
@@ -15,7 +16,7 @@ def parse_3(store, event):
     for item in event.data:
         if not item.text:
             continue
-    
+
         name = item.get("Name")
         if name == "User":
             user.username = item.text
@@ -38,14 +39,16 @@ def parse_3(store, event):
     machine_id = store.add_machine(machine)
 
     if user_id and machine_id:
-        store.add_logon_event(SysmonLogonEvent(
-            source=user_id,
-            target=machine_id,
-            event_type=event.event_id,
-            timestamp=event.timestamp,
-            initiated = initiated,
-            image = image,
-            procotol = procotol,
-            destination_port = destination_port,
-            source_port = source_port,
-        ))
+        store.add_logon_event(
+            SysmonLogonEvent(
+                source=user_id,
+                target=machine_id,
+                event_type=event.event_id,
+                timestamp=event.timestamp,
+                initiated=initiated,
+                image=image,
+                procotol=procotol,
+                destination_port=destination_port,
+                source_port=source_port,
+            )
+        )

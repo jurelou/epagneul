@@ -1,5 +1,5 @@
-from epagneul.models.observables import Machine, User
 from epagneul.models.events import BaseEvent
+from epagneul.models.observables import Machine, User
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -16,13 +16,14 @@ KNOWN_ADMIN_SIDS_ENDINGS = {
     "-517": "Cert Publisher",
     "-518": "Schema Admin",
     "-519": "Enterprise Admin",
-    "-520": "Group Policy Creator Owner"
+    "-520": "Group Policy Creator Owner",
 }
+
 
 def get_role_from_sid(user):
     if not user.sid:
         return False, None
-    
+
     for sid, role in KNOWN_ADMIN_SIDS.items():
         if sid == user.sid:
             return True, role
@@ -32,6 +33,7 @@ def get_role_from_sid(user):
             return True, role
 
     return False, None
+
 
 def merge_models(a, b):
     for b_field in b.__fields__:
@@ -49,26 +51,27 @@ def merge_models(a, b):
             continue
         except TypeError:
             pass
-        
+
         if a_field_value:
             print(f"DOUBLE VALUE ({b_field}) {a_field_value} -- {b_field_value}")
         else:
             setattr(a, b_field, b_field_value)
     return a
 
+
 class Datastore:
     def __init__(self):
         self.machines = {}
         self.users = {}
         self.logon_events = {}
-        #self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
-        
+        # self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
+
         self.ml_list = []
 
         self.start_time = None
         self.end_time = None
 
-    def finalize(self):        
+    def finalize(self):
         # Remove duplicate machines
         known_machines = {}
         for k in list(self.machines.keys()):
@@ -77,7 +80,9 @@ class Datastore:
                 del self.machines[k]
 
         for machine in self.machines.values():
-            if not machine.hostname and not any(machine.ip in km.ips for km in known_machines.values()):
+            if not machine.hostname and not any(
+                machine.ip in km.ips for km in known_machines.values()
+            ):
                 known_machines[machine.id] = machine
 
         self.machines = known_machines
@@ -91,7 +96,9 @@ class Datastore:
 
         for user in self.users.values():
             if user.username in known_users:
-                known_users[user.username] = merge_models(known_users[user.username], user)
+                known_users[user.username] = merge_models(
+                    known_users[user.username], user
+                )
             else:
                 for k, v in known_users.items():
                     if user.username == v.username and user.domain == v.domain:
@@ -115,8 +122,9 @@ class Datastore:
             event.source = f"user-{event.source}"
             event.target = f"machine-{event.target}"
             for ts in event.timestamps:
-                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
-
+                self.add_ml_frame(
+                    [ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source]
+                )
 
     def add_timestamp(self, timestamp):
         if not self.start_time:
@@ -131,26 +139,33 @@ class Datastore:
 
     def get_timeline():
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
+        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
+            "dates"
+        ].transform("count")
         return count_set.drop_duplicates()
 
     def get_change_finder(self):
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
+        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
+            "dates"
+        ].transform("count")
         count_set = count_set.drop_duplicates()
         tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
         return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
 
     def add_ml_frame(self, frame):
         self.ml_list.append(frame)
-        #self.ml_frame = self.ml_frame.append(series, ignore_index=True)
+        # self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
     def add_logon_event(self, event):
         identifier = f"{event.source}-{event.event_type}-{event.target}"
         if identifier in self.logon_events:
             self.logon_events[identifier].timestamps.add(event.timestamp)
         else:
-            self.logon_events[identifier] = BaseEvent(**event.dict(exclude={'timestamp', 'timestamps'}), timestamps={event.timestamp})
+            self.logon_events[identifier] = BaseEvent(
+                **event.dict(exclude={"timestamp", "timestamps"}),
+                timestamps={event.timestamp},
+            )
 
     def add_machine(self, machine: Machine):
         if machine.hostname:
@@ -159,7 +174,7 @@ class Datastore:
             machine.id = machine.ip
         else:
             return None
-        
+
         if machine.id in self.machines:
             self.machines[machine.id] = merge_models(self.machines[machine.id], machine)
         else:
@@ -185,5 +200,5 @@ class Datastore:
             self.users[user.id] = merge_models(self.users[user.id], user)
         else:
             self.users[user.id] = user
-        
+
         return user.id

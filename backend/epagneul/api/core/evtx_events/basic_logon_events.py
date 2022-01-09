@@ -1,6 +1,8 @@
-from epagneul.models.observables import User, Machine
-from epagneul.models.events import NativeLogonEvent
 import ipaddress
+
+from epagneul.models.events import NativeLogonEvent
+from epagneul.models.observables import Machine, User
+
 
 def parse_basic_logons(store, event):
     user = User()
@@ -27,24 +29,26 @@ def parse_basic_logons(store, event):
             user.domain = item.text
         elif name in ("TargetUserSid", "TargetSid"):
             user.sid = item.text
-        #elif name == "SubjectDomainName" :
+        # elif name == "SubjectDomainName" :
         #    store.add_domain(Domain(name=item.text))
         elif name == "LogonType":
             logon_type = item.text
         elif name == "Status":
             status = item.text
-        #elif name == "AuthenticationPackageName":
+        # elif name == "AuthenticationPackageName":
         #    relationship_data["AuthenticationPackageName"] = item.text
 
     user_id = store.add_user(user)
     machine_id = store.add_machine(machine)
 
     if user_id and machine_id:
-        store.add_logon_event(NativeLogonEvent(
-            source=user_id,
-            target=machine_id,
-            event_type=event.event_id,
-            timestamp=event.timestamp,
-            logon_type=logon_type,
-            status=status
-        ))
+        store.add_logon_event(
+            NativeLogonEvent(
+                source=user_id,
+                target=machine_id,
+                event_type=event.event_id,
+                timestamp=event.timestamp,
+                logon_type=logon_type,
+                status=status,
+            )
+        )

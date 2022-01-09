@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import docker
-
 from epagneul.common import exceptions
 
 _CLIENT = docker.from_env()
