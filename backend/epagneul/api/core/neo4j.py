@@ -63,13 +63,14 @@ class DataBase:
             for item in res:
                 source_id = _get_or_add_node(item["source"])
                 target_id = _get_or_add_node(item["target"])
-                item["rel"]["source"] = source_id
-                item["rel"]["target"] = target_id
-
+                rel = item["rel"]
+                rel["source"] = source_id
+                rel["target"] = target_id
+                rel["tip"] = rel["tip"] + f"<br>Count: {rel['count']}"
                 edges.append(Edge(data=EventInDB(**item["rel"], id=uuid4().hex)))
 
         return list(nodes.values()), edges
-        
+
         
     def create_folder(self, folder: Folder):
         with self._driver.session() as session:
@@ -192,8 +193,9 @@ class DataBase:
                 session.run(
                     "UNWIND $events as row "
                     "MATCH (user: User {id: row.source, folder: $folder}), (machine: Machine {id: row.target, folder: $folder}) "
-                    "CREATE (user)-[rel: LogonEvent]->(machine) "
-                    "SET rel += row",
+                    "MERGE (user)-[rel: LogonEvent {event_type: row.event_type}]->(machine) "
+                    "ON CREATE SET rel += row "
+                    "ON MATCH SET rel.count = rel.count + 1",
                     events=chunk,
                     folder=folder,
                 )

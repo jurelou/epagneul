@@ -9,6 +9,18 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - x
 
+## [0.3.0] - 2021-09-01
+
+### Added
+- Sysmon event ID 3
+- Documentation for offline deployment
+- frontend: autocomplete when searching
+- Deduplicate edges based on their `event_type` and show the count
+
+### Changed
+- fixed a bug where options for searching were not updated on refresh
+- frontend: display edges using a list of toggles
+
 ## [0.2.0] - 2021-08-01
 
 ### Added

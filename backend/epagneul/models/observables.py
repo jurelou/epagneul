@@ -53,7 +53,7 @@ class Machine(Observable):
     @validator("hostname", "domain")
     def validate_hostname(cls, value):
         v = value.split("@")[0].strip().lower().strip("$")
-        if not v or v == "localhost":
+        if not v or v in "localhost" :
             return ""
         return v
 

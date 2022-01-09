@@ -3,7 +3,7 @@ venv_bin = $(venv)/bin
 python = python3.8
 
 all:
-	docker-compose -f docker-compose-prod.yml up --build -d
+	docker-compose -f docker-compose-prod.yml up -d
 
 stop:
 	docker-compose -f docker-compose-prod.yml down
@@ -19,6 +19,18 @@ redev:
 
 dev:
 	docker-compose up -d
+
+release:
+	docker-compose -f docker-compose-prod.yml build
+	mkdir -p release
+	docker save epagneul_backend > release/backend.gz
+	docker save epagneul_frontend > release/frontend.gz
+	docker save neo4j:4.4.2 > release/neo4j.gz
+
+load:
+	docker load < release/backend.gz
+	docker load < release/frontend.gz
+	docker load < release/neo4j.gz
 
 install:
 	cd frontend && npm install

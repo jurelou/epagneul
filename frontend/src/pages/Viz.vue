@@ -82,46 +82,18 @@
               <q-separator inset dark />
               
               <q-card-section>
-
-                <q-select
-                  style="overflow: hidden;"
-                  outlined
-                  v-model="default_viz_node_options"
-                  multiple
-                  :options="viz_node_options"
-                  use-chips
-                  stack-label
-                  label="Filter edges"
-                  @update:model-value="select_viz_relationships"
-                >
-
-                  <template v-slot:selected-item="scope">
-                    <q-chip
-                      removable
-                      dense
-                      color="primary"
-                      @remove="scope.removeAtIndex(scope.index)"
-                    >
-                      {{ scope.opt.value || scope.opt }}
-                    </q-chip>
-                  </template>
-
-                </q-select>
-
-              </q-card-section>
-
-
-              <q-card-section>
                     <q-select
                       use-input
                       outlined
                       :options="available_search_users_ref"
                       v-model="selected_user"
+                      
                       label="Search for a user"
                       input-debounce="0"
                       transition-show="scale"
                       transition-hide="scale"
                       @update:model-value="zoomNode($event, 'user')"
+                      @filter="filterUser"
                     >
                       <template v-slot:no-option>
                         <q-item>
@@ -144,6 +116,7 @@
                       transition-show="scale"
                       transition-hide="scale"
                       @update:model-value="zoomNode($event, 'machine')"
+                      @filter="filterMachine"
                     >
                       <template v-slot:no-option>
                         <q-item>
@@ -154,6 +127,17 @@
                       </template>
                     </q-select>    
               </q-card-section>
+
+              <q-card-section>
+                <q-option-group
+                  v-model="default_viz_node_options"
+                  :options="viz_node_options"
+                  color="primary"
+                  type="toggle"
+                />
+              </q-card-section>
+
+
 
           </q-card>
         </q-scroll-area>
@@ -214,6 +198,7 @@ var cy = null
 const svgRef = ref(null);
 
 
+
 onMounted(() => {
   const svg = d3.select(svgRef.value);
   cy = makeCytoscape(folder.value)
@@ -250,8 +235,8 @@ function updateSelectedNodes(start, end) {
   const start_time_date = (start.getTime() - start.getTimezoneOffset() * 60000) / 1000 | 0
   const end_time_date = (end.getTime() - end.getTimezoneOffset() * 60000) / 1000 | 0
 
-  available_search_machines_ref.value = []
-  available_search_users_ref.value = []
+  available_search_machines = []
+  available_search_users = []
 
 
   cy.edges().forEach(edge => {
@@ -262,15 +247,9 @@ function updateSelectedNodes(start, end) {
       return true
     })
 
-    const edge_label = edge.data().label 
+    const edge_label = edge.data().event_type 
     const edge_value = edge.data().value
-
-    const isInFilter = !default_viz_node_options.value.every(i => {
-      if (i === edge_label || i.value === edge_label) {
-        return false
-      }
-      return true
-    })
+    const isInFilter = default_viz_node_options.value.includes(edge.data().event_type.toString())
 
     if (isInFilter && isInTimerange) {
       edge.style("display", "element")
@@ -293,24 +272,24 @@ function updateSelectedNodes(start, end) {
     if (node.style().display == "element"){
       const node_category = node.data().category
       if (node_category == "machine")
-        available_search_machines_ref.value.push(node.data().label)
+        available_search_machines.push(node.data().label)
       else if (node_category == "user")
-        available_search_users_ref.value.push(node.data().label)
+        available_search_users.push(node.data().label)
     }
   })
-  available_search_machines_ref.value = available_search_machines_ref.value.filter(onlyUnique)
-  available_search_users_ref.value = available_search_users_ref.value.filter(onlyUnique)
+  available_search_machines = available_search_machines.filter(onlyUnique)
+  available_search_users = available_search_users.filter(onlyUnique)
 
   onChangeVisualisationMode(selected_viz_type.value)
-
 }
-
 
 ///////////////////////////////////////////////////////////////
 // SELECT MACHINE
 ///////////////////////////////////////////////////////////////
 var selected_machine = ref()
-const available_search_machines_ref = ref([])
+var available_search_machines = []
+
+const available_search_machines_ref = ref(available_search_machines)
 
 function zoomNode(node_label, category) {
   if (category == "user") {
@@ -334,44 +313,54 @@ function zoomNode(node_label, category) {
   }).play()
 }
 
+function filterMachine (val, update, abort) {
+  update(() => {
+    const needle = val.toLowerCase()
+      available_search_machines_ref.value = available_search_machines.filter(v => v.toLowerCase().indexOf(needle) > -1)
+  })
+}
+
+
 ///////////////////////////////////////////////////////////////
 // SELECT USER
 ///////////////////////////////////////////////////////////////
 const selected_user = ref()
-const available_search_users_ref = ref([])
+var available_search_users = []
+
+const available_search_users_ref = ref(available_search_users)
+
+function filterUser (val, update, abort) {
+  update(() => {
+    const needle = val.toLowerCase()
+      available_search_users_ref.value = available_search_users.filter(v => v.toLowerCase().indexOf(needle) > -1)
+  })
+}
 
 ///////////////////////////////////////////////////////////////
 // FOLDER DATA
 ///////////////////////////////////////////////////////////////
 const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 
-watch(() => folder, (folder) => {
-  console.log("watch folkder")
-})
 
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
-const default_viz_node_options = ref(["4624", "4625", "4768", "4769", "4776", "4648", "4771" ])
+const default_viz_node_options = ref(["3", "4624", "4625", "4768", "4769", "4776", "4648", "4771" ])
 const viz_node_options = [
-  { label: '4624: Successful logon', value: '4624', color: 'green' },
-  { label: '4625: Logon failure', value: '4625', color: 'green' },
-  { label: '4648: Explicit credential logon', value: '4648', color: 'green' },
-  { label: '4768: Kerberos Authentication (TGT)', value: '4768', color: 'green' },
-  { label: '4769: Kerberos Service Ticket', value: '4769', color: 'green' },
-  { label: '4776: NTLM Authentication', value: '4776', color: 'green' },
-  { label: '4771: Kerberos pre-authentication failed', value: '4771', color: 'green' }
+  { label: 'Sysmon 3', value: '3' },
+  { label: '4624: Successful logon', value: '4624' },
+  { label: '4625: Logon failure', value: '4625' },
+  { label: '4648: Explicit credential logon', value: '4648' },
+  { label: '4768: Kerberos Authentication (TGT)', value: '4768' },
+  { label: '4769: Kerberos Service Ticket', value: '4769' },
+  { label: '4776: NTLM Authentication', value: '4776' },
+  { label: '4771: Kerberos pre-authentication failed', value: '4771' }
 ]
-
-function select_viz_relationships(selected_ids) {
-  default_viz_node_options.value = selected_ids
-  updateSelectedNodes(start_time, end_time)
-}
 
 ///////////////////////////////////////////////////////////////
 // CHANGE LAYOUT
 ///////////////////////////////////////////////////////////////
-const options = [ 'fcose', 'cose-bilkent', 'breadthfirst', 'klay', 'grid', 'circle'];
+const options = [ 'fcose', 'klay', 'cose-bilkent', 'breadthfirst', 'grid', 'circle'];
 const selected_viz_type = ref('fcose');
 
 function onChangeVisualisationMode(layout_name, animate = true) {

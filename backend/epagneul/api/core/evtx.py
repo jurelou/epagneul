@@ -9,12 +9,12 @@ from typing import Optional, List, Any
 from pydantic import BaseModel
 import pandas as pd
 import numpy as np
-import ipaddress
 
 from epagneul.api.core.changefinder import ChangeFinder
+from epagneul.api.core.store import Datastore
 
-from epagneul.models.observables import * 
-from epagneul.models.events import * 
+from epagneul.models.observables import Machine, User
+from epagneul.models.events import NativeLogonEvent
 
 class Event(BaseModel):
     event_id: int
@@ -22,28 +22,23 @@ class Event(BaseModel):
     data: Any
 
 
-HCHECK = r"[*\\/|:\"<>?&]"
+from epagneul.api.core.evtx_events.event_4672 import parse_4672
+from epagneul.api.core.evtx_events.event_3 import parse_3
+from epagneul.api.core.evtx_events.event_4648 import parse_4648
+from epagneul.api.core.evtx_events.basic_logon_events import parse_basic_logons
 
-USEFULL_EVENTS_STR = re.compile(r'<EventID>(4624|4625|4648|4768|4769|4771|4776|4672)', re.MULTILINE)
-
-
-KNOWN_ADMIN_SIDS = {
-    "S-1-5-18": "System (or LocalSystem)",
-    "S-1-5-19": "NT Authority (LocalService)",
-    "S-1-5-20": "Network Service",
-    "S-1-5-32-544": "Administrator",
-    "S-1-5-32-547": "Power User",
+supported_events = {
+    3: parse_3,
+    4648: parse_4648,
+    4624: parse_basic_logons,
+    4625: parse_basic_logons,
+    4672: parse_4672,
+    4768: parse_basic_logons,
+    4769: parse_basic_logons,
+    4771: parse_basic_logons,
+    4776: parse_basic_logons,
 }
-
-KNOWN_ADMIN_SIDS_ENDINGS = {
-    "-500": "Domain local administrator",
-    "-502": "krbtgt",
-    "-512": "Domain Admin",
-    "-517": "Cert Publisher",
-    "-518": "Schema Admin",
-    "-519": "Enterprise Admin",
-    "-520": "Group Policy Creator Owner"
-}
+USEFULL_EVENTS_STR = re.compile(f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE)
 
 def to_lxml(record_xml):
     rep_xml = record_xml.replace("xmlns=\"http://schemas.microsoft.com/win/2004/08/events/event\"", "")
@@ -67,175 +62,6 @@ def get_event_from_xml(raw_xml_event):
         data=xml_event.xpath("/Event/EventData/Data")
     )
 
-def merge_models(a, b):
-    for b_field in b.__fields__:
-        b_field_value = getattr(b, b_field)
-        if not b_field_value:
-            continue
-        a_field_value = getattr(a, b_field)
-
-        if a_field_value == b_field_value:
-            continue
-        try:
-            if a_field_value in b_field_value:
-                # a is a subset of b
-                setattr(a, b_field, b_field_value)
-            continue
-        except TypeError:
-            pass
-        
-        if a_field_value:
-            print(f"DOUBLE VALUE ({b_field}) {a_field_value} -- {b_field_value}")
-        else:
-            setattr(a, b_field, b_field_value)
-    return a
-
-def get_role_from_sid(user):
-    if not user.sid:
-        return False, None
-    
-    for sid, role in KNOWN_ADMIN_SIDS.items():
-        if sid == user.sid:
-            return True, role
-
-    for sid, role in KNOWN_ADMIN_SIDS_ENDINGS.items():
-        if user.sid.endswith(sid):
-            return True, role
-
-    return False, None
-
-class Datastore:
-    def __init__(self):
-        self.machines = {}
-        self.users = {}
-        self.logon_events = {}
-        #self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
-        
-        self.ml_list = []
-
-        self.start_time = None
-        self.end_time = None
-
-    def finalize(self):        
-        # Remove duplicate machines
-        known_machines = {}
-        for k in list(self.machines.keys()):
-            if self.machines[k].hostname:
-                known_machines[k] = self.machines[k]
-                del self.machines[k]
-
-        for machine in self.machines.values():
-            if not machine.hostname and not any(machine.ip in km.ips for km in known_machines.values()):
-                known_machines[machine.id] = machine
-
-        self.machines = known_machines
-
-        # Remove duplicate users
-        known_users = {}
-        for k in list(self.users.keys()):
-            if self.users[k].sid and self.users[k].username:
-                known_users[k] = self.users[k]
-                del self.users[k]
-
-        for user in self.users.values():
-            if user.username in known_users:
-                known_users[user.username] = merge_models(known_users[user.username], user)
-            else:
-                for k, v in known_users.items():
-                    if user.username == v.username and user.domain == v.domain:
-                        known_users[k] = merge_models(known_users[k], user)
-                        break
-                else:
-                    known_users[user.username] = user
-        self.users = known_users
-
-        for event in self.logon_events.values():
-            if event.target not in self.machines:
-                for m in self.machines.values():
-                    if event.target == m.hostname or event.target in m.ips:
-                        event.target = m.id
-                        break
-            if event.source not in self.users:
-                for u in self.users.values():
-                    if event.source == u.sid or event.source == u.username:
-                        event.source = u.id
-                        break
-            event.source = f"user-{event.source}"
-            event.target = f"machine-{event.target}"
-            for ts in event.timestamps:
-                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
-
-
-    def add_timestamp(self, timestamp):
-        if not self.start_time:
-            self.start_time = timestamp
-        elif self.start_time > timestamp:
-            self.start_time = timestamp
-
-        if not self.end_time:
-            self.end_time = timestamp
-        elif self.end_time < timestamp:
-            self.end_time = timestamp
-
-    def get_timeline():
-        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
-        return count_set.drop_duplicates()
-
-    def get_change_finder(self):
-        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])["dates"].transform("count")
-        count_set = count_set.drop_duplicates()
-        tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
-        return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
-
-    def add_ml_frame(self, frame):
-        self.ml_list.append(frame)
-        #self.ml_frame = self.ml_frame.append(series, ignore_index=True)
-
-    def add_logon_event(self, event):
-        identifier = f"{event.source}-{event.event_type}-{event.target}"
-        if identifier in self.logon_events:
-            self.logon_events[identifier].timestamps.add(event.timestamp)
-        else:
-            self.logon_events[identifier] = LogonEvent(**event.dict(exclude={'timestamp', 'timestamps'}), timestamps={event.timestamp})
-
-    def add_machine(self, machine: Machine):
-        if machine.hostname:
-            machine.id = machine.hostname
-        elif machine.ip:
-            machine.id = machine.ip
-        else:
-            return None
-        
-        if machine.id in self.machines:
-            self.machines[machine.id] = merge_models(self.machines[machine.id], machine)
-        else:
-            self.machines[machine.id] = machine
-        self.machines[machine.id].add_ip(machine.ip)
-        return machine.id
-
-    def add_user(self, user: User):
-        if user.sid:
-            # SID
-            if user.sid.count("-") != 3:
-                user.id = user.sid
-            else:
-                user.id = user.username
-        elif user.username:
-            user.id = user.username
-        else:
-            return None
-
-        user.is_admin, user.role = get_role_from_sid(user)
-
-        if user.id in self.users:
-            self.users[user.id] = merge_models(self.users[user.id], user)
-        else:
-            self.users[user.id] = user
-        
-        return user.id
-
 
 def parse_evtx(file_data):
     logger.info(f"Parsing evtx file: {file_data}")
@@ -245,107 +71,17 @@ def parse_evtx(file_data):
 
     for r in evtx.records():
         data = r["data"]
-        if not "<Channel>Security" in data:
-            continue
-
+        #if not "<Channel>Security" in data:
+        #    continue
         if not re.search(USEFULL_EVENTS_STR, data):
             continue
+
         event = get_event_from_xml(data)
         store.add_timestamp(event.timestamp)
-        
 
-        ###############################################################
-        # Admin users:
-        #  EventID 4672: Special privileges assigned to new logon
-        ###############################################################
-        if event.event_id == 4672:
-            user = User(is_admin=True, role="")
-            for item in event.data:
-                if not item.text:
-                    continue
-                name = item.get("Name")
-                if name == "SubjectUserName":
-                    user.username = item.text
-                elif name == "SubjectUserSid":
-                    user.sid = item.text
-                elif name == "SubjectDomainName":
-                    user.domain = item.text
-            store.add_user(user)
+        if event.event_id in supported_events:
+            supported_events[event.event_id](store, event)
 
-        ###############################################################
-        # Logon events:
-        #  EventID 4624: An account was successfully logged on
-        #  EventID 4625: An account failed to log on
-        #  EventID 4768: A Kerberos authentication ticket (TGT) was requested
-        #  EventID 4769: A Kerberos service ticket was requested
-        #  EventID 4776: The domain controller attempted to validate the credentials for an account
-        ###############################################################
-        else:
-            user = User()
-            machine = Machine()
-            logon_type = 0
-            status = ""
-
-            if event.event_id == 4648:
-                for item in event.data:
-                    if not item.text:
-                        continue
-                    name = item.get("Name")
-                    if name == "SubjectUserSid":
-                        user.sid = item.text
-                    elif name == "SubjectUserName":
-                        user.username = item.text
-                    elif name == "SubjectDomainName":
-                        user.domain = item.text
-                    elif name == "TargetServerName":
-                        machine.hostname = item.text
-                    elif name == "TargetServerName":
-                        machine.hostname = item.text
-                    elif name == "TargetDomainName":
-                        machine.domain = item.text
-            else:
-                for item in event.data:
-                    if not item.text:
-                        continue
-                    name = item.get("Name")
-                    if name in ("WorkstationName", "Workstation"):
-                        machine.hostname = item.text
-                    elif name == "IpAddress":
-                        value = item.text.replace("::ffff:", "")
-                        try:
-                            ipaddress.ip_address(value)
-                            machine.ip = value
-                        except:
-                            machine.hostname = value
-                    elif name == "TargetUserName":
-                        user.username = item.text
-                    elif name == "TargetDomainName":
-                        user.domain = item.text
-                    elif name in ("TargetUserSid", "TargetSid"):
-                        user.sid = item.text
-                    #elif name == "SubjectDomainName" :
-                    #    store.add_domain(Domain(name=item.text))
-                    elif name == "LogonType":
-                        logon_type = item.text
-                    elif name == "Status":
-                        status = item.text
-                    #elif name == "AuthenticationPackageName":
-                    #    relationship_data["AuthenticationPackageName"] = item.text
-            user_id = store.add_user(user)
-            machine_id = store.add_machine(machine)
-
-
-            if user_id and machine_id:
-                store.add_logon_event(SingleTimestampLogonEvent(
-                    source=user_id,
-                    target=machine_id,
-                    event_type=event.event_id,
-
-                    timestamp=event.timestamp,
-
-                    logon_type=logon_type,
-                    status=status
-                ))
     return store
 
 def adetection(counts, users, starttime, tohours):
@@ -402,10 +138,8 @@ if __name__ == "__main__":
     db = get_database()
     db.bootstrap()
     db.rm()
-    """
-    store = parse_evtx("/data/filtered.evtx")
-    store.finalize()
-    """
+    #store = parse_evtx("/data/files/")
+    #store.finalize()
 
     """
     #a, b, c = store.get_change_finder()
