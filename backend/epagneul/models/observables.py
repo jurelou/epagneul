@@ -62,8 +62,10 @@ class Machine(Observable):
 
     @validator("hostname", "domain")
     def validate_hostname(cls, value):
+        if not v:
+            return ""
         v = value.split("@")[0].strip().lower().strip("$")
-        if not v or v in "localhost":
+        if v in "localhost":
             return ""
         return v
 
@@ -93,10 +95,14 @@ class User(Observable):
 
     @validator("domain")
     def validate_domain(cls, value):
+        if not v:
+            return ""
         return value.split("@")[0].strip().lower() or ""
 
     @validator("username")
     def validate_username(cls, value):
+        if not v:
+            return ""
         v = value.split("@")[0].strip().lower().strip("$")
         v = v[:-1] if v[-1:] == "$" else v
         if not v or v == "anonymous logon":
