@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import sys
+from epagneul.config import settings
 
-from epagneul.common import settings
 from loguru import logger
 
 log_format = (
@@ -14,3 +14,5 @@ logger.add(
     format=log_format,
 )
 logger.add(settings.log.file, level=settings.log.level, format=log_format)
+
+__all__ = ["settings"]

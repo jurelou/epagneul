@@ -191,13 +191,16 @@ import { makeTimeline } from './timeline/timeline';
 
 import * as d3 from 'd3v4';
 
+
+console.log(d3.schemeDark2)
+var accent = d3.scaleSequential(d3.schemeDark2);
+console.log(accent)
+
 const route = useRoute()
 const $q = useQuasar()
 var cy = null
 
 const svgRef = ref(null);
-
-
 
 onMounted(() => {
   const svg = d3.select(svgRef.value);
@@ -460,14 +463,14 @@ body {
 }
 
 .selection {
-  fill: #20C20E !important;
-  height: 30px;
-  fill-opacity: .8;
+  fill: #7fc97f !important;
+  height: 27px;
+  fill-opacity: 1;
 }
 
 .domain, .tick line{
   /*fill: blue; */
-  stroke: #20C20E;
+  stroke: #7fc97f;
 }
 
 .tick text{
