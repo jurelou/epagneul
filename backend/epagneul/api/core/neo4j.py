@@ -53,7 +53,9 @@ class DataBase:
                 nodes[compound_id] = Node(
                     data=Observable(
                         id=compound_id,
-                        category="compound"
+                        category="compound",
+                        border_width=1,
+                        border_color="#222023"
                     )
                 )
             new_node.data.parent = compound_id

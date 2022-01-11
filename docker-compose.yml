@@ -19,10 +19,11 @@ services:
       - 7687:7687
     volumes:
       - neo4j:/data
+      - ./docker/neo4j/plugins:/var/lib/neo4j/plugins
     environment:
       - NEO4J_AUTH=neo4j/epagneul
-      - NEO4JLABS_PLUGINS=["apoc", "graph-data-science"]
-      - apoc.import.file.enabled=true
+      - NEO4J_dbms_security_procedures_unrestricted=algo.*,gds.*,apoc.*
+      - NEO4J_apoc_import_file_enabled=true
 
   backend:
     build:

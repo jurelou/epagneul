@@ -19,10 +19,11 @@ services:
       - 7687:7687
     volumes:
       - neo4j:/data
-      - ./neo4j_plugins:/var/lib/neo4j/plugins
+      - ./docker/neo4j/plugins:/var/lib/neo4j/plugins
     environment:
       - NEO4J_AUTH=neo4j/epagneul
       - apoc.import.file.enabled=true
+      - dbms.security.procedures.unrestricted=algo.*,apoc.*
 
   backend:
     build:

@@ -29,11 +29,27 @@ $warning   : #c28004;
 
 //http://quasar-app-extension-theme-manager.surge.sh/#/
 
-$primary    : #58a6ff;
-$secondary    : #d50000;
+$primary    : #7fc97f;
+$secondary    : #030303;
 
 $dark       : #222023;
-$positive   : #00e676;
-$negative   : #ff7043;
+$positive   : #7fc97f;
+$negative   : #e31a1c;
 
 $info      : #b2ebf2;
+
+
+/* from  https://observablehq.com/@d3/color-schemes?collection=@d3/d3-scale-chromatic
+  "#e31a1c" red
+  "#7fc97f" haxor green
+  "#386cb0" blue
+
+  "#1b9e77" dark green
+  "#d95f02" orange
+  "#7570b3" violet
+  "#e7298a" pink
+  "#66a61e" light green
+  "#e6ab02" yellow
+  "#a6761d" brown
+  "#666666" grey
+*/

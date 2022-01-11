@@ -41,7 +41,7 @@ class Machine(Observable):
     ips: set = set()
 
     shape: str = "round-rectangle"
-    border_color: str = "#4361ee"
+    border_color: str = "#7570b3"
 
     def finalize(self):
         self.id = f"{self.category}-{self.id}"
@@ -80,7 +80,7 @@ class User(Observable):
     border_width: int = 2
 
     shape: str = "circle"
-    border_color: str = "#fcf45d"
+    border_color: str = "#e6ab02"
 
     def finalize(self):
         self.id = f"{self.category}-{self.id}"
@@ -113,7 +113,7 @@ class LocalAdminUser(User):
     is_admin: bool = True
     role: str = "admin"
 
-    border_color: str = "#e85d04"
+    border_color: str = "#d95f02"
     border_width: int = 4
 
 class DomainAdminUser(User):
@@ -121,4 +121,4 @@ class DomainAdminUser(User):
     role: str = "admin"
 
     border_width: int = 6
-    border_color: str = "#e31632"
+    border_color: str = "#e31a1c"

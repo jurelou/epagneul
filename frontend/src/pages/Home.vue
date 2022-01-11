@@ -103,7 +103,8 @@ function add_new_folder() {
         </q-card-section>
 
         <q-card-section class="q-pt-none">
-          <q-input 
+          <q-input
+            color="secondary"
             dense 
             v-model="new_folder_name"
             autofocus
@@ -116,8 +117,8 @@ function add_new_folder() {
         </q-card-section>
 
         <q-card-actions align="right" class="text-primary">
-          <q-btn flat label="Cancel" v-close-popup />
-          <q-btn flat label="Add address" @click="add_new_folder()"/>
+          <q-btn flat color="negative" label="Cancel" v-close-popup />
+          <q-btn flat label="Add folder" @click="add_new_folder()"/>
         </q-card-actions>
       </q-card>
 
