@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 - frontend: changed colors, now using high contrast colors from d3
 - Include neo4j dependencies for offline deployment
 - Fixed minor bugs
+- The "remove" button now really removed the data !
 
 ## [0.3.1] - 2021-09-01
 

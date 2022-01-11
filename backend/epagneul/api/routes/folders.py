@@ -1,8 +1,8 @@
 import traceback
 from datetime import datetime
 
-from epagneul.api.core.evtx import parse_evtx
-from epagneul.api.core.neo4j import get_database
+from epagneul.core.evtx import parse_evtx
+from epagneul.core.neo4j import get_database
 from epagneul.models.files import File
 from epagneul.models.folders import Folder
 from fastapi import APIRouter, Depends, HTTPException, Request

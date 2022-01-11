@@ -1,8 +1,8 @@
 import os
 from typing import Callable
 
-from epagneul.api.core.neo4j import db
-from epagneul.common import settings
+from epagneul.core.neo4j import db
+from epagneul import settings
 from fastapi import FastAPI
 from loguru import logger
 

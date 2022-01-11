@@ -2,7 +2,7 @@ from datetime import datetime
 from uuid import uuid4
 
 
-from epagneul.common import settings
+from epagneul import settings
 from epagneul.models.events import EventInDB
 from epagneul.models.files import File
 from epagneul.models.folders import Folder, FolderInDB
@@ -125,11 +125,18 @@ class DataBase:
 
     def remove_folder(self, folder_id):
         with self._driver.session() as session:
-            result = session.run(
-                "MATCH (folder: Folder {identifier: $identifier}) DETACH DELETE folder",
+            session.run(
+                "MATCH (folders: Folder {identifier: $identifier}) DETACH DELETE folders",
                 identifier=folder_id,
             )
-            return result
+            session.run(
+                "MATCH (files: File {identifier: $identifier}) DETACH DELETE files",
+                identifier=folder_id,
+            )
+            session.run(
+                "MATCH (nodes {folder: $identifier}) DETACH DELETE nodes",
+                identifier=folder_id,
+            )
 
     def add_folder_file(self, folder_id, file: File):
         with self._driver.session() as session:

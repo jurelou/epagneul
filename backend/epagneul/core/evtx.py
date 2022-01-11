@@ -1,28 +1,25 @@
-# -*- coding: utf-8 -*-
 import datetime
 import re
 from typing import Any
 
-# import pandas as pd
 import numpy as np
-from epagneul.api.core.changefinder import ChangeFinder
-from epagneul.api.core.store import Datastore
+from epagneul.core.changefinder import ChangeFinder
+from epagneul.core.store import Datastore
 from evtx import PyEvtxParser
 from loguru import logger
 from lxml import etree
 from pydantic import BaseModel
+
+from epagneul.core.evtx_events.basic_logon_events import parse_basic_logons
+from epagneul.core.evtx_events.event_3 import parse_3
+from epagneul.core.evtx_events.event_4648 import parse_4648
+from epagneul.core.evtx_events.event_4672 import parse_4672
 
 
 class Event(BaseModel):
     event_id: int
     timestamp: datetime.datetime
     data: Any
-
-
-from epagneul.api.core.evtx_events.basic_logon_events import parse_basic_logons
-from epagneul.api.core.evtx_events.event_3 import parse_3
-from epagneul.api.core.evtx_events.event_4648 import parse_4648
-from epagneul.api.core.evtx_events.event_4672 import parse_4672
 
 supported_events = {
     3: parse_3,
