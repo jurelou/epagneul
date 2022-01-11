@@ -1,5 +1,5 @@
-from epagneul.models.events import BaseEvent
-from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser
+from epagneul.models.relationships import BaseRelationship
+from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser, Group
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -63,9 +63,11 @@ def merge_models(a, b):
 
 class Datastore:
     def __init__(self):
+        self.nodes = {} #array of {ObservableType: [ list of observables ] }
         self.machines = {}
         self.users = {}
-        self.logon_events = {}
+        self.groups = {}
+        self.relationships = {}
         # self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
 
         self.ml_list = []
@@ -110,7 +112,37 @@ class Datastore:
                     known_users[user.username] = user
         self.users = known_users
 
-        for event in self.logon_events.values():
+        for event in self.relationships.values():
+            # target
+            if event.target.category == ObservableType.USER:
+                if event.target not in self.users:
+                    for u in self.users.values():
+                        if event.target == u.sid or event.target == u.username:
+                            event.target = u.id
+                            break
+
+
+            elif event.target.category == ObservableType.MACHINE:
+                if event.target not in self.machines:
+                    for m in self.machines.values():
+                        if event.target == m.hostname or event.target in m.ips:
+                            event.target = m.id
+                            break
+            # source
+            if event.source.category == ObservableType.USER:
+                if event.source not in self.users:
+                    for u in self.users.values():
+                        if event.source == u.sid or event.source == u.username:
+                            event.source = u.id
+                            break
+
+            elif event.source.category == ObservableType.MACHINE:
+                if event.source not in self.machines:
+                    for m in self.machines.values():
+                        if event.source == m.hostname or event.source in m.ips:
+                            event.source = m.id
+                            break
+            """
             if event.target not in self.machines:
                 for m in self.machines.values():
                     if event.target == m.hostname or event.target in m.ips:
@@ -121,8 +153,10 @@ class Datastore:
                     if event.source == u.sid or event.source == u.username:
                         event.source = u.id
                         break
-            event.source = f"user-{event.source}"
-            event.target = f"machine-{event.target}"
+            """
+            event.source = f"{event.category}-{event.source}"
+            event.target = f"{event.category}-{event.target}"
+
             for ts in event.timestamps:
                 self.add_ml_frame(
                     [ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source]
@@ -159,16 +193,18 @@ class Datastore:
         self.ml_list.append(frame)
         # self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
-    def add_logon_event(self, event):
+    def add_relationship(self, event):
         identifier = f"{event.source}-{event.event_type}-{event.target}"
-        if identifier in self.logon_events:
-            self.logon_events[identifier].timestamps.add(event.timestamp)
-            self.logon_events[identifier].count = self.logon_events[identifier].count + 1
+        if identifier in self.relationships:
+            self.relationships[identifier].timestamps.add(event.timestamp)
+            self.relationships[identifier].count = self.relationships[identifier].count + 1
         else:
-            self.logon_events[identifier] = BaseEvent(
+            self.relationships[identifier] = BaseRelationship(
                 **event.dict(exclude={"timestamp", "timestamps"}),
                 timestamps={event.timestamp},
             )
+
+
 
     def add_machine(self, machine: Machine):
         if machine.hostname:
@@ -186,16 +222,13 @@ class Datastore:
         return machine.id
 
     def add_user(self, user: User):
-        if user.sid:
-            # SID
-            if user.sid.count("-") != 3:
-                user.id = user.sid
-            else:
-                user.id = user.username
-        elif user.username:
-            user.id = user.username
-        else:
+        if not user.sid and not user.username:
             return None
+        if user.sid and user.sid.count("-") != 3:
+            user.id = user.sid
+        else:
+            user.id = user.username
+
 
         local_admin, role = is_local_admin(user)
         if not local_admin:
@@ -210,8 +243,27 @@ class Datastore:
             self.users[user.id] = user
 
         if local_admin:
-            self.users[user.id] = LocalAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
+            user_category = LocalAdminUser
         elif domain_admin or user.is_admin:
-            self.users[user.id] = DomainAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
+            user_category = DomainAdminUser
+        else:
+            user_category = User
 
+        self.users[user.id] = user_category(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
         return user.id
+
+    def add_group(self, group: Group):
+        if not group.name and not group.sid:
+            return None
+
+        if group.sid and group.sid.count("-") != 3:
+            group.id = group.sid
+        else:
+            group.id = group.username
+
+        if group.id in self.groups:
+            self.groups[group.id] = merge_models(self.groups[group.id], group)
+        else:
+            self.groups[group.id] = group
+
+        return group.id

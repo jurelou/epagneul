@@ -1,6 +1,6 @@
 import ipaddress
 
-from epagneul.models.events import NativeLogonEvent
+from epagneul.models.relationships import NativeLogonRelationship
 from epagneul.models.observables import Machine, User
 
 
@@ -42,8 +42,8 @@ def parse_basic_logons(store, event):
     machine_id = store.add_machine(machine)
 
     if user_id and machine_id:
-        store.add_logon_event(
-            NativeLogonEvent(
+        store.add_relationship(
+            NativeLogonRelationship(
                 source=user_id,
                 target=machine_id,
                 event_type=event.event_id,

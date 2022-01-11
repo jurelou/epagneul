@@ -1,7 +1,8 @@
 from typing import Optional
 
-from pydantic import BaseModel, validator, root_validator
+from enum import Enum
 
+from pydantic import BaseModel, validator, root_validator
 
 class NonEmptyValuesModel(BaseModel):
     def __setattr__(self, name, value):
@@ -11,11 +12,17 @@ class NonEmptyValuesModel(BaseModel):
     class Config:
         validate_assignment = True
 
+class ObservableType(str, Enum):
+    GROUP = "Group"
+    MACHINE = "Machine"
+    USER = "User"
+    COMPOUND = "Compound"
+
 
 class Observable(NonEmptyValuesModel):
     id: Optional[str]
 
-    category: str
+    category: ObservableType
 
     label: str = ""
     bg_opacity: float = 0.33
@@ -29,12 +36,33 @@ class Observable(NonEmptyValuesModel):
     border_width: int = 5
     algo_lpa: int = -1
 
+    class Config:
+        use_enum_values = True
     # algo_pagerank: float = 0.15
     # timeline: List[int] = []
     # algo_change_finder: ??
 
+class Group(Observable):
+    category = ObservableType.GROUP
+
+    sid: Optional[str]
+    name: Optional[str]
+    domain: Optional[str]
+
+    subject_sid: Optional[str]
+
+    shape: str = "round-rectangle"
+    border_color: str = "#7570b3"
+
+
+    def finalize(self):
+        self.id = f"group-{self.id}"
+        self.label = self.name or self.sid
+        self.tip = f"Name: {self.name}<br>SID: {self.sid}<br>Domain: {self.domain}<br>Subject SID: {self.subject_sid}"
+
 class Machine(Observable):
-    category: str = "machine"
+    category = ObservableType.MACHINE
+
     hostname: Optional[str]
     domain: Optional[str]
     ip: Optional[str]
@@ -70,7 +98,7 @@ class Machine(Observable):
         return v
 
 class User(Observable):
-    category: str = "user"
+    category = ObservableType.USER
 
     username: Optional[str]
     sid: Optional[str]

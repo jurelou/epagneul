@@ -5,7 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel
 
 
-class BaseEvent(BaseModel):
+class BaseRelationship(BaseModel):
     source: str
     target: str
     timestamps: set = set()
@@ -19,17 +19,21 @@ class BaseEvent(BaseModel):
     class Config:
         extra = "allow"
 
-
-class LogonEvent(BaseEvent):
+class TimestampedRelationship(BaseRelationship):
     timestamp: datetime.datetime
 
+class GroupRelationship(BaseRelationship):
+    subject_user: Optional[str]
+    subject_sid: Optional[str]
+    privileges: Optional[str]
 
-class NativeLogonEvent(LogonEvent):
+
+class NativeLogonRelationship(TimestampedRelationship):
     logon_type: int = 0
     status: str = ""
 
 
-class SysmonLogonEvent(LogonEvent):
+class SysmonLogonRelationship(TimestampedRelationship):
     initiated: Optional[bool]
     image: Optional[str]
     procotol: Optional[str]
@@ -37,7 +41,7 @@ class SysmonLogonEvent(LogonEvent):
     source_port: Optional[int]
 
 
-class EventInDB(BaseEvent):
+class RelationshipInDB(BaseRelationship):
     tip: str
     count: int = 1
     id: Optional[UUID]

@@ -14,12 +14,14 @@ from epagneul.core.evtx_events.basic_logon_events import parse_basic_logons
 from epagneul.core.evtx_events.event_3 import parse_3
 from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
+from epagneul.core.evtx_events import group_events
 
 
 class Event(BaseModel):
     event_id: int
     timestamp: datetime.datetime
     data: Any
+
 
 supported_events = {
     3: parse_3,
@@ -31,6 +33,15 @@ supported_events = {
     4769: parse_basic_logons,
     4771: parse_basic_logons,
     4776: parse_basic_logons,
+
+    4728: group_events.parse_add_group,
+    4732: group_events.parse_add_group,
+    4756: group_events.parse_add_group,
+
+    #5140: test,
+    #4729: test,
+    #4733: test,
+    #4757: test,
 }
 
 USEFULL_EVENTS_STR = re.compile(
@@ -79,8 +90,6 @@ def parse_evtx(file_data):
 
     for r in evtx.records():
         data = r["data"]
-        # if not "<Channel>Security" in data:
-        #    continue
         if not re.search(USEFULL_EVENTS_STR, data):
             continue
 

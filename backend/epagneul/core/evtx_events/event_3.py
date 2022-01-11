@@ -1,5 +1,5 @@
-from epagneul.models.events import SysmonLogonEvent
 from epagneul.models.observables import Machine, User
+from epagneul.models.relationships import SysmonLogonRelationship
 
 
 def parse_3(store, event):
@@ -39,8 +39,8 @@ def parse_3(store, event):
     machine_id = store.add_machine(machine)
 
     if user_id and machine_id:
-        store.add_logon_event(
-            SysmonLogonEvent(
+        store.add_relationship(
+            SysmonLogonRelationship(
                 source=user_id,
                 target=machine_id,
                 event_type=event.event_id,
