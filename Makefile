@@ -27,6 +27,7 @@ release:
 	docker save epagneul_backend > release/backend.gz
 	docker save epagneul_frontend > release/frontend.gz
 	docker save neo4j:4.4.2 > release/neo4j.gz
+	cd .. && tar --exclude-vcs -czvf epagneul.tgz ./epagneul && cp ./epagneul.tgz ./epagneul/release.tgz
 
 load:
 	docker load < release/backend.gz
