@@ -22,6 +22,7 @@ dev:
 
 release:
 	docker-compose -f docker-compose-prod.yml build
+	docker-compose -f docker-compose-prod.yml pull
 	mkdir -p release
 	docker save epagneul_backend > release/backend.gz
 	docker save epagneul_frontend > release/frontend.gz
@@ -37,3 +38,6 @@ install:
 	cd backend && $(python) -m venv $(venv)
 	cd backend && $(venv_bin)/pip install pip setuptools wheel -U
 	cd backend && $(venv_bin)/pip install .[dev]
+
+.PHONY: release
+
