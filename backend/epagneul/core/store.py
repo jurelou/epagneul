@@ -1,5 +1,5 @@
 from epagneul.models.relationships import BaseRelationship
-from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser, Group
+from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser, Group, ObservableType
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -63,10 +63,17 @@ def merge_models(a, b):
 
 class Datastore:
     def __init__(self):
-        self.nodes = {} #array of {ObservableType: [ list of observables ] }
+        self._nodes = {
+            ObservableType.USER: {},
+            ObservableType.MACHINE: {},
+            ObservableType.GROUP: {}
+        }
+        """
         self.machines = {}
         self.users = {}
         self.groups = {}
+        """
+
         self.relationships = {}
         # self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
 
@@ -75,13 +82,25 @@ class Datastore:
         self.start_time = None
         self.end_time = None
 
+    @property
+    def groups(self):
+        return self._nodes[ObservableType.GROUP]
+
+    @property
+    def users(self):
+        return self._nodes[ObservableType.USER]
+
+    @property
+    def machines(self):
+        return self._nodes[ObservableType.MACHINE]
+
     def finalize(self):
         # Remove duplicate machines
         known_machines = {}
         for k in list(self.machines.keys()):
             if self.machines[k].hostname:
                 known_machines[k] = self.machines[k]
-                del self.machines[k]
+                del self._nodes[ObservableType.MACHINE][k]
 
         for machine in self.machines.values():
             if not machine.hostname and not any(
@@ -89,14 +108,15 @@ class Datastore:
             ):
                 known_machines[machine.id] = machine
 
-        self.machines = known_machines
+        self._nodes[ObservableType.MACHINE] = known_machines
+
 
         # Remove duplicate users
         known_users = {}
         for k in list(self.users.keys()):
             if self.users[k].sid and self.users[k].username:
                 known_users[k] = self.users[k]
-                del self.users[k]
+                del  self._nodes[ObservableType.USER][k]
 
         for user in self.users.values():
             if user.username in known_users:
@@ -105,62 +125,43 @@ class Datastore:
                 )
             else:
                 for k, v in known_users.items():
-                    if user.username == v.username and user.domain == v.domain:
+                    if user.username == v.username and (user.domain in v.domain or v.domain in user.domain):
                         known_users[k] = merge_models(known_users[k], user)
                         break
                 else:
                     known_users[user.username] = user
-        self.users = known_users
+
+        self._nodes[ObservableType.USER] = known_users
+
+        users = self.users.values()
+        machines = self.machines.values()
+        groups = self.groups.values()
+
+        users_keys = self.users.keys()
+        machines_keys = self.machines.keys()
+        groups_keys = self.groups.keys()
+
+        def resolve_node(node, node_type):
+            if node_type == ObservableType.USER and node not in users_keys:
+                for u in users:
+                    if event.target == u.sid or event.target == u.username:
+                        return u.id
+            elif node_type == ObservableType.MACHINE and node not in machines_keys:
+                for m in machines:
+                    if event.target == m.hostname or event.target in m.ips:
+                        return m.id
+            return node
 
         for event in self.relationships.values():
-            # target
-            if event.target.category == ObservableType.USER:
-                if event.target not in self.users:
-                    for u in self.users.values():
-                        if event.target == u.sid or event.target == u.username:
-                            event.target = u.id
-                            break
 
+            event.source = resolve_node(event.source, event.source_type)
+            event.target = resolve_node(event.target, event.target_type)
 
-            elif event.target.category == ObservableType.MACHINE:
-                if event.target not in self.machines:
-                    for m in self.machines.values():
-                        if event.target == m.hostname or event.target in m.ips:
-                            event.target = m.id
-                            break
-            # source
-            if event.source.category == ObservableType.USER:
-                if event.source not in self.users:
-                    for u in self.users.values():
-                        if event.source == u.sid or event.source == u.username:
-                            event.source = u.id
-                            break
-
-            elif event.source.category == ObservableType.MACHINE:
-                if event.source not in self.machines:
-                    for m in self.machines.values():
-                        if event.source == m.hostname or event.source in m.ips:
-                            event.source = m.id
-                            break
-            """
-            if event.target not in self.machines:
-                for m in self.machines.values():
-                    if event.target == m.hostname or event.target in m.ips:
-                        event.target = m.id
-                        break
-            if event.source not in self.users:
-                for u in self.users.values():
-                    if event.source == u.sid or event.source == u.username:
-                        event.source = u.id
-                        break
-            """
-            event.source = f"{event.category}-{event.source}"
-            event.target = f"{event.category}-{event.target}"
+            event.source = f"{event.source_type}-{event.source}"
+            event.target = f"{event.target_type}-{event.target}"
 
             for ts in event.timestamps:
-                self.add_ml_frame(
-                    [ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source]
-                )
+                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
 
     def add_timestamp(self, timestamp):
         if not self.start_time:
@@ -200,11 +201,9 @@ class Datastore:
             self.relationships[identifier].count = self.relationships[identifier].count + 1
         else:
             self.relationships[identifier] = BaseRelationship(
-                **event.dict(exclude={"timestamp", "timestamps"}),
+                **event.dict(exclude={"timestamp"}),
                 timestamps={event.timestamp},
             )
-
-
 
     def add_machine(self, machine: Machine):
         if machine.hostname:

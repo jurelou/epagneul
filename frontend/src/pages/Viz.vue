@@ -348,16 +348,25 @@ const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
-const default_viz_node_options = ref(["3", "4624", "4625", "4768", "4769", "4776", "4648", "4771" ])
+const default_viz_node_options = ref([
+  "Successfull logon",
+  "TGS request",
+  "NTLM request",
+  "Network connection",
+  "Logon w/ explicit credentials"
+])
+
+  
 const viz_node_options = [
-  { label: 'Sysmon 3', value: '3' },
-  { label: '4624: Successful logon', value: '4624' },
-  { label: '4625: Logon failure', value: '4625' },
-  { label: '4648: Explicit credential logon', value: '4648' },
-  { label: '4768: Kerberos Authentication (TGT)', value: '4768' },
-  { label: '4769: Kerberos Service Ticket', value: '4769' },
-  { label: '4776: NTLM Authentication', value: '4776' },
-  { label: '4771: Kerberos pre-authentication failed', value: '4771' }
+  { label: "Successfull logon", value: "Successfull logon" },
+  { label: "Failed logon", value: "Failed logon" },
+  { label: "TGT request", value: "TGT request" },
+  { label: "TGT failed", value: "TGT failed" },
+  { label: "TGS request", value: "TGS request" },
+  { label: "NTLM request", value: "NTLM request" },
+  { label: "Network connection", value: "Network connection" },
+  { label: "Logon w/ explicit credentials", value: "Logon w/ explicit credentials" },
+  { label: "Group add", value: "Group add" },
 ]
 
 ///////////////////////////////////////////////////////////////

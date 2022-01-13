@@ -9,6 +9,16 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - x
 
+## [0.4.0] - x
+
+### Added
+- windows groups observable
+- Event 4728, 4732, 4756
+
+### Changed
+- Better management of Relationships and Observables
+- Edges labels are now more generic (instead of native windows event codes.)
+
 
 ## [0.3.2] - 2021-11-01
 
@@ -40,26 +50,14 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - frontend: edge tippy
-
-### Changed
-- refactor pydantic models
-
-## [0.1.1] - 2021-08-01
-
-### Added
-- Rounded logo in the `README.md`
-
-### Changed
-- Fixed assignation to constant variables in `Home.vue`
-
-## [0.1.0] - 2021-08-01
-
-### Added
 - frontend: Add the ability to search for specific machines
 - frontend: Added timeline
 - Added production build via `make prod`
+- Rounded logo in the `README.md`
 
 ### Changed
+- refactor pydantic models
+- Fixed assignation to constant variables in `Home.vue`
 - Edges are now tagged with their timestamp. It allows to filter edges by timestamp.
 - UI: Switched to a simpler left side panel in the visualisation page
 

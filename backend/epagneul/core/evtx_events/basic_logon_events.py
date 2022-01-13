@@ -1,10 +1,10 @@
 import ipaddress
 
-from epagneul.models.relationships import NativeLogonRelationship
+from epagneul.models.relationships import NativeLogonRelationship, RelationshipType
 from epagneul.models.observables import Machine, User
 
 
-def parse_basic_logons(store, event):
+def _parse_basic_logons(store, event, relationship_type):
     user = User()
     machine = Machine()
     logon_type = 0
@@ -46,9 +46,27 @@ def parse_basic_logons(store, event):
             NativeLogonRelationship(
                 source=user_id,
                 target=machine_id,
-                event_type=event.event_id,
+                event_type=relationship_type,
                 timestamp=event.timestamp,
                 logon_type=logon_type,
                 status=status,
             )
         )
+
+def parse_logon_successfull(store, event):
+    _parse_basic_logons(store, event, RelationshipType.SUCCESSFULL_LOGON)
+
+def parse_logon_failed(store, event):
+    _parse_basic_logons(store, event, RelationshipType.FAILED_LOGON)
+
+def parse_tgt(store, event):
+    _parse_basic_logons(store, event, RelationshipType.TGT_REQUEST)
+
+def parse_tgt_failed(store, event):
+    _parse_basic_logons(store, event, RelationshipType.TGT_FAILED)
+
+def parse_tgs(store, event):
+    _parse_basic_logons(store, event, RelationshipType.TGS_REQUEST)
+
+def parse_ntlm_request(store, event):
+    _parse_basic_logons(store, event, RelationshipType.NTLM_REQUEST)

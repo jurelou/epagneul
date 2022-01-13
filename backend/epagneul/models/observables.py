@@ -4,6 +4,13 @@ from enum import Enum
 
 from pydantic import BaseModel, validator, root_validator
 
+class ObservableType(str, Enum):
+    GROUP = "Group"
+    MACHINE = "Machine"
+    USER = "User"
+    COMPOUND = "Compound"
+
+
 class NonEmptyValuesModel(BaseModel):
     def __setattr__(self, name, value):
         if value and value != "-":
@@ -11,12 +18,6 @@ class NonEmptyValuesModel(BaseModel):
 
     class Config:
         validate_assignment = True
-
-class ObservableType(str, Enum):
-    GROUP = "Group"
-    MACHINE = "Machine"
-    USER = "User"
-    COMPOUND = "Compound"
 
 
 class Observable(NonEmptyValuesModel):
@@ -49,16 +50,14 @@ class Group(Observable):
     name: Optional[str]
     domain: Optional[str]
 
-    subject_sid: Optional[str]
-
-    shape: str = "round-rectangle"
-    border_color: str = "#7570b3"
+    shape: str = "hexagon"
+    border_color: str = "#e7298a"
 
 
     def finalize(self):
-        self.id = f"group-{self.id}"
+        self.id = f"Group-{self.id}"
         self.label = self.name or self.sid
-        self.tip = f"Name: {self.name}<br>SID: {self.sid}<br>Domain: {self.domain}<br>Subject SID: {self.subject_sid}"
+        self.tip = f"Name: {self.name}<br>SID: {self.sid}<br>Domain: {self.domain}"
 
 class Machine(Observable):
     category = ObservableType.MACHINE
@@ -72,7 +71,7 @@ class Machine(Observable):
     border_color: str = "#7570b3"
 
     def finalize(self):
-        self.id = f"{self.category}-{self.id}"
+        self.id = f"Machine-{self.id}"
         self.label = self.hostname or self.ip
         self.tip = f"Hostname: {self.hostname}<br>Domain: {self.domain}<br>Ip(s): {', '.join(self.ips)}"
 
@@ -111,7 +110,7 @@ class User(Observable):
     border_color: str = "#e6ab02"
 
     def finalize(self):
-        self.id = f"{self.category}-{self.id}"
+        self.id = f"User-{self.id}"
         self.tip = f"Username: {self.username}<br>SID: {self.sid}<br>Domain: {self.domain}<br>Role: {self.role}"
         self.label = self.username
 

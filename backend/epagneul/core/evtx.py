@@ -10,7 +10,7 @@ from loguru import logger
 from lxml import etree
 from pydantic import BaseModel
 
-from epagneul.core.evtx_events.basic_logon_events import parse_basic_logons
+from epagneul.core.evtx_events import basic_logon_events
 from epagneul.core.evtx_events.event_3 import parse_3
 from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
@@ -26,13 +26,15 @@ class Event(BaseModel):
 supported_events = {
     3: parse_3,
     4648: parse_4648,
-    4624: parse_basic_logons,
-    4625: parse_basic_logons,
+    4624: basic_logon_events.parse_logon_successfull,
+    4625: basic_logon_events.parse_logon_failed,
     4672: parse_4672,
-    4768: parse_basic_logons,
-    4769: parse_basic_logons,
-    4771: parse_basic_logons,
-    4776: parse_basic_logons,
+
+    4768: basic_logon_events.parse_tgt,
+    4769: basic_logon_events.parse_tgs,
+    4771: basic_logon_events.parse_tgt_failed,
+
+    4776: basic_logon_events.parse_ntlm_request,
 
     4728: group_events.parse_add_group,
     4732: group_events.parse_add_group,

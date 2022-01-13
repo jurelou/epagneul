@@ -32,8 +32,6 @@ export const style = cytoscape.stylesheet()
         "text-outline-width": 0,
 
         "font-weight": "bold"
-
-
     })
     .selector('node.highlight').css({
         "border-width": 2,

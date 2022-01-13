@@ -1,6 +1,6 @@
 import ipaddress
 
-from epagneul.models.relationships import GroupRelationship
+from epagneul.models.relationships import GroupRelationship, RelationshipType
 from epagneul.models.observables import Group, User
 
 
@@ -42,10 +42,8 @@ def parse_add_group(store, event):
             GroupRelationship(
                 source=user_id,
                 target=group_id,
-                event_type=12334,
+                event_type=RelationshipType.GROUP_ADDED,
                 timestamp=event.timestamp,
-                subject_user=subject.username,
-                subject_sid=subject.sid,
                 privileges=privs
             )
         )

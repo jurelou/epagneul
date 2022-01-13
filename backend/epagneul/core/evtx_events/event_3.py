@@ -1,5 +1,5 @@
 from epagneul.models.observables import Machine, User
-from epagneul.models.relationships import SysmonLogonRelationship
+from epagneul.models.relationships import SysmonLogonRelationship, RelationshipType
 
 
 def parse_3(store, event):
@@ -43,7 +43,7 @@ def parse_3(store, event):
             SysmonLogonRelationship(
                 source=user_id,
                 target=machine_id,
-                event_type=event.event_id,
+                event_type=RelationshipType.NETWORK_CONNECTION,
                 timestamp=event.timestamp,
                 initiated=initiated,
                 image=image,

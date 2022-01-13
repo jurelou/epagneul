@@ -48,7 +48,7 @@ class DataBase:
 
             new_node = Node(data=Observable(**node))
             new_node.data.width = 10 + (len(new_node.data.label) * 11)
-            compound_id = f"compound-{node['algo_lpa']}"
+            compound_id = f"Compound-{node['algo_lpa']}"
             if compound_id not in nodes:
                 nodes[compound_id] = Node(
                     data=Observable(
@@ -172,13 +172,13 @@ class DataBase:
         events = []
         for e in store.relationships.values():
             event = RelationshipInDB(
-                **e.dict(exclude={"timestamps"}),
+                **e.dict(exclude={"timestamps", "source_type", "target_type"}),
                 timestamps=[int(round(datetime.timestamp(ts))) for ts in e.timestamps],
                 tip="<br>".join(
                     [
                         f"{k}: {v}"
                         for k, v in e.dict(
-                            exclude={"source", "target", "timestamps", "count"}
+                            exclude={"source", "target", "timestamps", "count", "source_type", "target_type"}
                         ).items()
                     ]
                 ),

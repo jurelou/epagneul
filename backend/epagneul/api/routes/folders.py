@@ -47,7 +47,8 @@ def delete_folder(folder_name: str, db=Depends(get_database)):
 @router.post("/{folder_name}")
 def create_folder(folder_name: str, db=Depends(get_database)):
     print(f"Create folder {folder_name}")
-    new_folder = Folder(name=folder_name, summary=f"summ for {folder_name}")
+
+    new_folder = Folder(name=folder_name, summary=f"...")
     db.create_folder(new_folder)
 
     print(f"New folder {folder_name}, {new_folder}")
@@ -66,8 +67,7 @@ def analyze_file(db, folder: str, file_data, filename):
 
     db.add_folder_file(
         folder,
-        File(
-            name=filename,
+        File(name=filename,
             start_time=int(round(datetime.timestamp(store.start_time))),
             end_time=int(round(datetime.timestamp(store.end_time))),
         ),
