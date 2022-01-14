@@ -11,7 +11,10 @@ class RelationshipType(str, Enum):
     FAILED_LOGON = "Failed logon"
     
 
-    TGT_REQUEST = "TGT request"
+    TGT_AES_REQUEST = "TGT AES Request"
+    TGT_DES_REQUEST = "TGT DES Request"
+    TGT_RC4_REQUEST = "TGT RC4 Request"
+
     TGT_FAILED = "TGT failed"
 
     TGS_REQUEST = "TGS request"
@@ -47,6 +50,7 @@ class TimestampedRelationship(BaseRelationship):
 class GroupRelationship(BaseRelationship):
     source_type = ObservableType.USER
     target_type = ObservableType.GROUP
+
 
     privileges: Optional[str]
 

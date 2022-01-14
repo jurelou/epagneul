@@ -59,8 +59,6 @@ def parse_logon_successfull(store, event):
 def parse_logon_failed(store, event):
     _parse_basic_logons(store, event, RelationshipType.FAILED_LOGON)
 
-def parse_tgt(store, event):
-    _parse_basic_logons(store, event, RelationshipType.TGT_REQUEST)
 
 def parse_tgt_failed(store, event):
     _parse_basic_logons(store, event, RelationshipType.TGT_FAILED)

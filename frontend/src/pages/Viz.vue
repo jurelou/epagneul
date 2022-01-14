@@ -360,7 +360,10 @@ const default_viz_node_options = ref([
 const viz_node_options = [
   { label: "Successfull logon", value: "Successfull logon" },
   { label: "Failed logon", value: "Failed logon" },
-  { label: "TGT request", value: "TGT request" },
+  { label: "TGT AES Request", value: "TGT AES Request" },
+  { label: "TGT DES Request", value: "TGT DES Request" },
+  { label: "TGT RC4 Request", value: "TGT RC4 Request" },
+
   { label: "TGT failed", value: "TGT failed" },
   { label: "TGS request", value: "TGS request" },
   { label: "NTLM request", value: "NTLM request" },
@@ -368,6 +371,8 @@ const viz_node_options = [
   { label: "Logon w/ explicit credentials", value: "Logon w/ explicit credentials" },
   { label: "Group add", value: "Group add" },
 ]
+
+
 
 ///////////////////////////////////////////////////////////////
 // CHANGE LAYOUT

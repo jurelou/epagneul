@@ -1,5 +1,4 @@
 import { useQuery } from 'vue-query';
-import { reactive, ref } from 'vue';
 
 const base_url = process.env.VUE_APP_BASE_URL
 

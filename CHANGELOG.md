@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - windows groups observable
 - Event 4728, 4732, 4756
+- Relationships: TGT_DES_REQUEST, TGT_AES_REQUEST, TGT_RC4_REQUEST
 
 ### Changed
 - Better management of Relationships and Observables

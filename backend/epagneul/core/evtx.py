@@ -14,6 +14,7 @@ from epagneul.core.evtx_events import basic_logon_events
 from epagneul.core.evtx_events.event_3 import parse_3
 from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
+from epagneul.core.evtx_events.event_4768 import parse_4768
 from epagneul.core.evtx_events import group_events
 
 
@@ -30,7 +31,7 @@ supported_events = {
     4625: basic_logon_events.parse_logon_failed,
     4672: parse_4672,
 
-    4768: basic_logon_events.parse_tgt,
+    4768: parse_4768,
     4769: basic_logon_events.parse_tgs,
     4771: basic_logon_events.parse_tgt_failed,
 
