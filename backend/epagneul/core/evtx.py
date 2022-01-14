@@ -9,12 +9,14 @@ from loguru import logger
 from lxml import etree
 from pydantic import BaseModel
 
+
 from epagneul.core.evtx_events import basic_logon_events
 from epagneul.core.evtx_events.event_3 import parse_3
 from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
 from epagneul.core.evtx_events.event_4768 import parse_4768
 from epagneul.core.evtx_events import group_events
+
 
 
 class Event(BaseModel):
@@ -44,7 +46,7 @@ supported_events = {
     #4729: test,
     #4733: test,
     #4757: test,
-}
+
 
 USEFULL_EVENTS_STR = re.compile(
     f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
@@ -106,6 +108,7 @@ def parse_evtx(file_data):
 if __name__ == "__main__":
     from epagneul.core.neo4j import get_database
 
+
     db = get_database()
     db.bootstrap()
     db.rm()
@@ -113,6 +116,7 @@ if __name__ == "__main__":
     store.finalize()
 
     print(store.users)
+
 
     """
     #a, b, c = store.get_change_finder()

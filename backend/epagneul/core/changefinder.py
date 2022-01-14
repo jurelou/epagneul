@@ -98,6 +98,7 @@ class ChangeFinder(_ChangeFinderAbstract):
         predict = x
         predict2 = 0
         if len(self._ts) == self._order:
+
             score, predict = self._sdar_first.update(x, self._ts)
             self._add_one(score, self._first_scores, self._smooth)
         self._add_one(x, self._ts, self._order)
@@ -105,6 +106,7 @@ class ChangeFinder(_ChangeFinderAbstract):
         if len(self._first_scores) == self._smooth:
             second_target = self._smoothing(self._first_scores)
         if second_target and len(self._smoothed_scores) == self._order:
+
             score, predict2 = self._sdar_second.update(
                 second_target, self._smoothed_scores
             )
