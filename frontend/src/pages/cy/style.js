@@ -2,6 +2,8 @@ import cytoscape from 'cytoscape';
 
 export const style = cytoscape.stylesheet()
     .selector('node').css({
+            "shape": "data(shape)",
+
             "content": "data(label)",
             "background-opacity": "data(bg_opacity)",
             "background-color": "data(border_color)",
@@ -19,9 +21,6 @@ export const style = cytoscape.stylesheet()
             "color": "#dee2e6",
             "text-outline-color": "black",
             "text-outline-width": 1
-    })
-    .selector('[shape]').css({
-        "shape": "data(shape)"
     })
     .selector('node:selected').css({
         "border-width": 2,
@@ -46,6 +45,8 @@ export const style = cytoscape.stylesheet()
 
     })
     .selector('edge').css({
+        "shape": "data(shape)",
+
         "color": "#dee2e6",
         "text-outline-color": "black",
         "text-outline-width": 1,

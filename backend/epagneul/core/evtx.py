@@ -46,6 +46,7 @@ supported_events = {
     #4729: test,
     #4733: test,
     #4757: test,
+}
 
 
 USEFULL_EVENTS_STR = re.compile(

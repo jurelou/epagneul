@@ -270,13 +270,6 @@ onMounted(() => {
 
   watchEffect(() => {
     if (!folder.value || !folder.value.files.length) return
-    users.value = []
-    folder.value.nodes.forEach(node => {
-      if (node.data.category == "User") {
-        console.log(node.data)
-        users.value.push(node.data)
-      }
-    })
 
     cy.json({elements: folder.value})
     makePopper(cy)
@@ -287,6 +280,14 @@ onMounted(() => {
     updateSelectedNodes(start_time, end_time)
 
     onChangeVisualisationMode(selected_viz_type.value, false)
+  
+    users.value = []
+    folder.value.nodes.forEach(node => {
+      if (node.data.category == "User") {
+        users.value.push(node.data)
+      }
+    })
+
   })
 })
 

@@ -22,8 +22,8 @@ services:
       - ./docker/neo4j/plugins:/var/lib/neo4j/plugins
     environment:
       - NEO4J_AUTH=neo4j/epagneul
-      - apoc.import.file.enabled=true
-      - dbms.security.procedures.unrestricted=algo.*,apoc.*
+      - NEO4J_dbms_security_procedures_unrestricted=algo.*,gds.*,apoc.*
+      - NEO4J_apoc_import_file_enabled=true
 
   backend:
     build:
