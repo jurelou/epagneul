@@ -20,6 +20,22 @@
         </div>
     </q-inner-loading>
 
+    <q-dialog v-model="dialog_rankings" position="left">
+      <q-card>
+
+        <q-card-section class="row items-center no-wrap">
+          <q-table
+            title="Ranks per user"
+            :rows="users"
+            :columns="users_table_columns"
+            row-key="name"
+            @row-click="click_row"
+          />
+
+        </q-card-section>
+      </q-card>
+    </q-dialog>
+
   <q-drawer 
       show-if-above
       side="left"
@@ -62,7 +78,19 @@
               </div>
 
             </q-card-section>
+            <q-separator inset dark />
 
+            <q-card-section>
+              <q-btn
+                outline
+                rounded 
+                style="width: 100%"
+                color="primary"
+                label="See rankings"
+                @click="dialog_rankings = true"
+              />
+
+              </q-card-section>
             <q-separator inset dark />
 
             <q-card-section>
@@ -92,7 +120,7 @@
                       input-debounce="0"
                       transition-show="scale"
                       transition-hide="scale"
-                      @update:model-value="zoomNode($event, 'user')"
+                      @update:model-value="zoomNode($event, 'User')"
                       @filter="filterUser"
                     >
                       <template v-slot:no-option>
@@ -115,7 +143,7 @@
                       input-debounce="0"
                       transition-show="scale"
                       transition-hide="scale"
-                      @update:model-value="zoomNode($event, 'machine')"
+                      @update:model-value="zoomNode($event, 'Machine')"
                       @filter="filterMachine"
                     >
                       <template v-slot:no-option>
@@ -128,7 +156,23 @@
                     </q-select>    
               </q-card-section>
 
+
+              <q-separator inset dark />
+
               <q-card-section>
+                <div class="q-pa-md">
+                  <q-btn-group spread>
+                    <q-btn 
+                      color="positive"
+                      label="Select all" 
+                      @click="select_all_relationships"/>
+                    <q-btn 
+                      color="negative"
+                      label="Remove all"
+                      @click="remove_all_relationships" />
+
+                  </q-btn-group>
+                </div>
                 <q-option-group
                   v-model="default_viz_node_options"
                   :options="viz_node_options"
@@ -192,14 +236,32 @@ import { makeTimeline } from './timeline/timeline';
 import * as d3 from 'd3v4';
 
 
-console.log(d3.schemeDark2)
-var accent = d3.scaleSequential(d3.schemeDark2);
-console.log(accent)
-
+const dialog_rankings = ref(false)
 const route = useRoute()
 const $q = useQuasar()
 var cy = null
 
+function click_row(_, item) {
+  zoomNode(item.label, "User")
+}
+const users_table_columns = [
+  {
+    name: "username",
+    label: "Username",
+    field: "label",
+    sortable: true,
+    align: 'right',
+
+  },
+  {
+    name: "rank",
+    label: "Rank",
+    field: "rank",
+    sortable: true
+
+  }
+]
+const users = ref([])
 const svgRef = ref(null);
 
 onMounted(() => {
@@ -208,7 +270,14 @@ onMounted(() => {
 
   watchEffect(() => {
     if (!folder.value || !folder.value.files.length) return
-    console.log(folder.value)
+    users.value = []
+    folder.value.nodes.forEach(node => {
+      if (node.data.category == "User") {
+        console.log(node.data)
+        users.value.push(node.data)
+      }
+    })
+
     cy.json({elements: folder.value})
     makePopper(cy)
 
@@ -274,9 +343,9 @@ function updateSelectedNodes(start, end) {
   cy.nodes().forEach(node => {
     if (node.style().display == "element"){
       const node_category = node.data().category
-      if (node_category == "machine")
+      if (node_category == "Machine")
         available_search_machines.push(node.data().label)
-      else if (node_category == "user")
+      else if (node_category == "User")
         available_search_users.push(node.data().label)
     }
   })
@@ -295,9 +364,9 @@ var available_search_machines = []
 const available_search_machines_ref = ref(available_search_machines)
 
 function zoomNode(node_label, category) {
-  if (category == "user") {
+  if (category == "User") {
     selected_machine.value = null
-  } else if (category == "machine") {
+  } else if (category == "Machine") {
     selected_user.value = null
   }
   const node = cy.nodes().filter(e => e.data('label') == node_label && e.data('category') == category)
@@ -348,17 +417,49 @@ const { folder, isLoading, refetch, isError } = useFolder(route.params.folder);
 ///////////////////////////////////////////////////////////////
 // SELECT EDGES
 ///////////////////////////////////////////////////////////////
-const default_viz_node_options = ref(["3", "4624", "4625", "4768", "4769", "4776", "4648", "4771" ])
+const default_viz_node_options = ref([
+  "Successfull logon",
+  "TGS request",
+  "NTLM request",
+  "Network connection",
+  "Logon w/ explicit credentials"
+])
+
+  
 const viz_node_options = [
-  { label: 'Sysmon 3', value: '3' },
-  { label: '4624: Successful logon', value: '4624' },
-  { label: '4625: Logon failure', value: '4625' },
-  { label: '4648: Explicit credential logon', value: '4648' },
-  { label: '4768: Kerberos Authentication (TGT)', value: '4768' },
-  { label: '4769: Kerberos Service Ticket', value: '4769' },
-  { label: '4776: NTLM Authentication', value: '4776' },
-  { label: '4771: Kerberos pre-authentication failed', value: '4771' }
+  { label: "Successfull logon", value: "Successfull logon" },
+  { label: "Failed logon", value: "Failed logon" },
+  { label: "TGT AES Request", value: "TGT AES Request" },
+  { label: "TGT DES Request", value: "TGT DES Request" },
+  { label: "TGT RC4 Request", value: "TGT RC4 Request" },
+
+  { label: "TGT failed", value: "TGT failed" },
+  { label: "TGS request", value: "TGS request" },
+  { label: "NTLM request", value: "NTLM request" },
+  { label: "Network connection", value: "Network connection" },
+  { label: "Logon w/ explicit credentials", value: "Logon w/ explicit credentials" },
+  { label: "Group add", value: "Group add" },
 ]
+
+function select_all_relationships() {
+  default_viz_node_options.value = [
+    "Successfull logon",
+    "Failed logon",
+    "TGT AES Request",
+    "TGT DES Request",
+    "TGT RC4 Request",
+    "TGT failed",
+    "TGS request",
+    "NTLM request",
+    "Network connection",
+    "Logon w/ explicit credentials",
+    "Group add"
+  ]
+}
+
+function remove_all_relationships() {
+    default_viz_node_options.value = []
+}
 
 ///////////////////////////////////////////////////////////////
 // CHANGE LAYOUT

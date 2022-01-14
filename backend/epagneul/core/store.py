@@ -1,5 +1,8 @@
-from epagneul.models.events import BaseEvent
-from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser
+from epagneul.models.relationships import BaseRelationship
+from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser, Group, ObservableType
+import pandas as pd
+
+from epagneul.core.algorithms import adetection
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -63,9 +66,18 @@ def merge_models(a, b):
 
 class Datastore:
     def __init__(self):
+        self._nodes = {
+            ObservableType.USER: {},
+            ObservableType.MACHINE: {},
+            ObservableType.GROUP: {}
+        }
+        """
         self.machines = {}
         self.users = {}
-        self.logon_events = {}
+        self.groups = {}
+        """
+
+        self.relationships = {}
         # self.ml_frame = pd.DataFrame(index=[], columns=["dates", "eventid", "username"])
 
         self.ml_list = []
@@ -73,13 +85,25 @@ class Datastore:
         self.start_time = None
         self.end_time = None
 
+    @property
+    def groups(self):
+        return self._nodes[ObservableType.GROUP]
+
+    @property
+    def users(self):
+        return self._nodes[ObservableType.USER]
+
+    @property
+    def machines(self):
+        return self._nodes[ObservableType.MACHINE]
+
     def finalize(self):
         # Remove duplicate machines
         known_machines = {}
         for k in list(self.machines.keys()):
             if self.machines[k].hostname:
                 known_machines[k] = self.machines[k]
-                del self.machines[k]
+                del self._nodes[ObservableType.MACHINE][k]
 
         for machine in self.machines.values():
             if not machine.hostname and not any(
@@ -87,14 +111,15 @@ class Datastore:
             ):
                 known_machines[machine.id] = machine
 
-        self.machines = known_machines
+        self._nodes[ObservableType.MACHINE] = known_machines
+
 
         # Remove duplicate users
         known_users = {}
         for k in list(self.users.keys()):
             if self.users[k].sid and self.users[k].username:
                 known_users[k] = self.users[k]
-                del self.users[k]
+                del  self._nodes[ObservableType.USER][k]
 
         for user in self.users.values():
             if user.username in known_users:
@@ -103,30 +128,48 @@ class Datastore:
                 )
             else:
                 for k, v in known_users.items():
-                    if user.username == v.username and user.domain == v.domain:
+                    if user.username == v.username and (user.domain in v.domain or v.domain in user.domain):
                         known_users[k] = merge_models(known_users[k], user)
                         break
                 else:
                     known_users[user.username] = user
-        self.users = known_users
 
-        for event in self.logon_events.values():
-            if event.target not in self.machines:
-                for m in self.machines.values():
-                    if event.target == m.hostname or event.target in m.ips:
-                        event.target = m.id
-                        break
-            if event.source not in self.users:
-                for u in self.users.values():
-                    if event.source == u.sid or event.source == u.username:
-                        event.source = u.id
-                        break
-            event.source = f"user-{event.source}"
-            event.target = f"machine-{event.target}"
+        self._nodes[ObservableType.USER] = known_users
+
+        users = self.users.values()
+        machines = self.machines.values()
+        groups = self.groups.values()
+
+        users_keys = self.users.keys()
+        machines_keys = self.machines.keys()
+        groups_keys = self.groups.keys()
+
+        def resolve_node(node, node_type):
+            if node_type == ObservableType.USER and node not in users_keys:
+                for u in users:
+                    if node == u.sid or node == u.username:
+                        return u.id
+            elif node_type == ObservableType.MACHINE and node not in machines_keys:
+                for m in machines:
+                    if node== m.hostname or node in m.ips:
+                        return m.id
+            return node
+
+        for event in self.relationships.values():
+
+            event.source = resolve_node(event.source, event.source_type)
+            event.target = resolve_node(event.target, event.target_type)
+
             for ts in event.timestamps:
-                self.add_ml_frame(
-                    [ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source]
-                )
+                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
+
+            event.source = f"{event.source_type}-{event.source}"
+            event.target = f"{event.target_type}-{event.target}"
+
+        for user, rank in self.get_change_finder().items():
+            if user in users_keys:
+                self.users[user].rank = rank
+
 
     def add_timestamp(self, timestamp):
         if not self.start_time:
@@ -139,18 +182,17 @@ class Datastore:
         elif self.end_time < timestamp:
             self.end_time = timestamp
 
+    """
     def get_timeline():
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
         count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
             "dates"
         ].transform("count")
         return count_set.drop_duplicates()
-
+    """
     def get_change_finder(self):
-        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
-            "dates"
-        ].transform("count")
+        count_set = pd.DataFrame(self.ml_list, columns=["dates", "event", "username"])
+        count_set["count"] = count_set.groupby(["dates", "event", "username"])["dates"].transform("count")
         count_set = count_set.drop_duplicates()
         tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
         return adetection(count_set, list(self.users.keys()), self.start_time, tohours)
@@ -159,14 +201,14 @@ class Datastore:
         self.ml_list.append(frame)
         # self.ml_frame = self.ml_frame.append(series, ignore_index=True)
 
-    def add_logon_event(self, event):
+    def add_relationship(self, event):
         identifier = f"{event.source}-{event.event_type}-{event.target}"
-        if identifier in self.logon_events:
-            self.logon_events[identifier].timestamps.add(event.timestamp)
-            self.logon_events[identifier].count = self.logon_events[identifier].count + 1
+        if identifier in self.relationships:
+            self.relationships[identifier].timestamps.add(event.timestamp)
+            self.relationships[identifier].count = self.relationships[identifier].count + 1
         else:
-            self.logon_events[identifier] = BaseEvent(
-                **event.dict(exclude={"timestamp", "timestamps"}),
+            self.relationships[identifier] = BaseRelationship(
+                **event.dict(exclude={"timestamp"}),
                 timestamps={event.timestamp},
             )
 
@@ -186,16 +228,13 @@ class Datastore:
         return machine.id
 
     def add_user(self, user: User):
-        if user.sid:
-            # SID
-            if user.sid.count("-") != 3:
-                user.id = user.sid
-            else:
-                user.id = user.username
-        elif user.username:
-            user.id = user.username
-        else:
+        if not user.sid and not user.username:
             return None
+        if user.sid and user.sid.count("-") != 3:
+            user.id = user.sid
+        else:
+            user.id = user.username
+
 
         local_admin, role = is_local_admin(user)
         if not local_admin:
@@ -210,8 +249,27 @@ class Datastore:
             self.users[user.id] = user
 
         if local_admin:
-            self.users[user.id] = LocalAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
+            user_category = LocalAdminUser
         elif domain_admin or user.is_admin:
-            self.users[user.id] = DomainAdminUser(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
+            user_category = DomainAdminUser
+        else:
+            user_category = User
 
+        self.users[user.id] = user_category(**user.dict(exclude={"bg_opacity", "bg_color", "border_color", "shape", "tip", "width", "height", "border_width"}))
         return user.id
+
+    def add_group(self, group: Group):
+        if not group.name and not group.sid:
+            return None
+
+        if group.sid and group.sid.count("-") != 3:
+            group.id = group.sid
+        else:
+            group.id = group.username
+
+        if group.id in self.groups:
+            self.groups[group.id] = merge_models(self.groups[group.id], group)
+        else:
+            self.groups[group.id] = group
+
+        return group.id

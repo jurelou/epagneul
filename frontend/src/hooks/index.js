@@ -1,5 +1,4 @@
 import { useQuery } from 'vue-query';
-import { reactive, ref } from 'vue';
 
 const base_url = process.env.VUE_APP_BASE_URL
 
@@ -23,6 +22,7 @@ export function useFolder(folder_id) {
 			//staleTime: 30 * 1000,
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false,
+			refetchOnMount: false
 
 		}
 	);

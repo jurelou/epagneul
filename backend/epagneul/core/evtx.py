@@ -3,17 +3,20 @@ import re
 from typing import Any
 
 import numpy as np
-from epagneul.core.changefinder import ChangeFinder
 from epagneul.core.store import Datastore
 from evtx import PyEvtxParser
 from loguru import logger
 from lxml import etree
 from pydantic import BaseModel
 
-from epagneul.core.evtx_events.basic_logon_events import parse_basic_logons
+
+from epagneul.core.evtx_events import basic_logon_events
 from epagneul.core.evtx_events.event_3 import parse_3
 from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
+from epagneul.core.evtx_events.event_4768 import parse_4768
+from epagneul.core.evtx_events import group_events
+
 
 
 class Event(BaseModel):
@@ -21,22 +24,33 @@ class Event(BaseModel):
     timestamp: datetime.datetime
     data: Any
 
+
 supported_events = {
     3: parse_3,
     4648: parse_4648,
-    4624: parse_basic_logons,
-    4625: parse_basic_logons,
+    4624: basic_logon_events.parse_logon_successfull,
+    4625: basic_logon_events.parse_logon_failed,
     4672: parse_4672,
-    4768: parse_basic_logons,
-    4769: parse_basic_logons,
-    4771: parse_basic_logons,
-    4776: parse_basic_logons,
-}
+
+    4768: parse_4768,
+    4769: basic_logon_events.parse_tgs,
+    4771: basic_logon_events.parse_tgt_failed,
+
+    4776: basic_logon_events.parse_ntlm_request,
+
+    4728: group_events.parse_add_group,
+    4732: group_events.parse_add_group,
+    4756: group_events.parse_add_group,
+
+    #5140: test,
+    #4729: test,
+    #4733: test,
+    #4757: test,
+
 
 USEFULL_EVENTS_STR = re.compile(
     f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
 )
-
 
 def to_lxml(record_xml):
     rep_xml = record_xml.replace(
@@ -79,8 +93,6 @@ def parse_evtx(file_data):
 
     for r in evtx.records():
         data = r["data"]
-        # if not "<Channel>Security" in data:
-        #    continue
         if not re.search(USEFULL_EVENTS_STR, data):
             continue
 
@@ -93,68 +105,18 @@ def parse_evtx(file_data):
     return store
 
 
-def adetection(counts, users, starttime, tohours):
-    count_array = np.zeros((6, len(users), tohours + 1))
-    count_all_array = []
-    result_array = []
-    cfdetect = {}
-    for _, event in counts.iterrows():
-        column = int(
-            (
-                datetime.datetime.strptime(event["dates"], "%Y-%m-%d  %H:%M:%S")
-                - starttime
-            ).total_seconds()
-            / 3600
-        )
-        row = users.index(event["username"])
-        # count_array[row, column, 0] = count_array[row, column, 0] + count
-        if event["eventid"] == 4624:
-            count_array[0, row, column] = event["count"]
-        elif event["eventid"] == 4625:
-            count_array[1, row, column] = event["count"]
-        elif event["eventid"] == 4768:
-            count_array[2, row, column] = event["count"]
-        elif event["eventid"] == 4769:
-            count_array[3, row, column] = event["count"]
-        elif event["eventid"] == 4776:
-            count_array[4, row, column] = event["count"]
-        elif event["eventid"] == 4648:
-            count_array[5, row, column] = event["count"]
-    count_sum = np.sum(count_array, axis=0)
-    count_average = count_sum.mean(axis=0)
-    num = 0
-    for udata in count_sum:
-        cf = ChangeFinder(r=0.04, order=1, smooth=6)
-        ret = []
-        for i in count_average:
-            cf.update(i)
-
-        for i in udata:
-            score = cf.update(i)
-            ret.append(round(score[1], 2))
-        result_array.append(ret)
-
-        cfdetect[users[num]] = max(ret)
-
-        count_all_array.append(udata.tolist())
-        for var in range(0, 6):
-            con = []
-            for i in range(0, tohours + 1):
-                con.append(count_array[var, num, i])
-            count_all_array.append(con)
-        num += 1
-
-    return count_all_array, result_array, cfdetect
-
-
 if __name__ == "__main__":
-    from epagneul.api.core.neo4j import get_database
+    from epagneul.core.neo4j import get_database
+
 
     db = get_database()
     db.bootstrap()
     db.rm()
-    # store = parse_evtx("/data/files/")
-    # store.finalize()
+    store = parse_evtx("/data/filtered.evtx")
+    store.finalize()
+
+    print(store.users)
+
 
     """
     #a, b, c = store.get_change_finder()

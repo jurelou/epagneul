@@ -3,11 +3,11 @@ from uuid import uuid4
 
 
 from epagneul import settings
-from epagneul.models.events import EventInDB
+from epagneul.models.relationships import RelationshipInDB
 from epagneul.models.files import File
 from epagneul.models.folders import Folder, FolderInDB
 from epagneul.models.graph import Edge, Node
-from epagneul.models.observables import Observable
+from epagneul.models.observables import Observable, ObservableType
 from neo4j import GraphDatabase
 
 
@@ -48,12 +48,12 @@ class DataBase:
 
             new_node = Node(data=Observable(**node))
             new_node.data.width = 10 + (len(new_node.data.label) * 11)
-            compound_id = f"compound-{node['algo_lpa']}"
+            compound_id = f"Compound-{node['algo_lpa']}"
             if compound_id not in nodes:
                 nodes[compound_id] = Node(
                     data=Observable(
                         id=compound_id,
-                        category="compound",
+                        category=ObservableType.COMPOUND,
                         border_width=1,
                         border_color="#222023"
                     )
@@ -76,7 +76,7 @@ class DataBase:
                 rel["source"] = source_id
                 rel["target"] = target_id
                 rel["tip"] = rel["tip"] + f"<br>Count: {rel['count']}"
-                edges.append(Edge(data=EventInDB(**item["rel"], id=uuid4().hex)))
+                edges.append(Edge(data=RelationshipInDB(**item["rel"], id=uuid4().hex)))
 
         return list(nodes.values()), edges
 
@@ -152,6 +152,11 @@ class DataBase:
     def add_evtx_store(self, store, folder: str):
         # timeline, detectn, cfdetect = store.get_change_finder()
 
+        groups = []
+        for g in store.groups.values():
+            g.finalize()
+            groups.append(g.dict())
+
         users = []
         for u in store.users.values():
             u.finalize()
@@ -165,15 +170,15 @@ class DataBase:
             machines.append(machine_dict)
 
         events = []
-        for e in store.logon_events.values():
-            event = EventInDB(
-                **e.dict(exclude={"timestamps"}),
+        for e in store.relationships.values():
+            event = RelationshipInDB(
+                **e.dict(exclude={"timestamps", "source_type", "target_type"}),
                 timestamps=[int(round(datetime.timestamp(ts))) for ts in e.timestamps],
                 tip="<br>".join(
                     [
                         f"{k}: {v}"
                         for k, v in e.dict(
-                            exclude={"source", "target", "timestamps", "count"}
+                            exclude={"source", "target", "timestamps", "count", "source_type", "target_type"}
                         ).items()
                     ]
                 ),
@@ -182,6 +187,14 @@ class DataBase:
             events.append(event)
 
         with self._driver.session() as session:
+            print("Adding groups")
+            session.run(
+                "UNWIND $groups as row "
+                "MERGE (group: Group {folder: $folder, id: row.id}) "
+                "ON CREATE SET group += row ",
+                groups=groups,
+                folder=folder,
+            )
             print("Adding users")
             session.run(
                 "UNWIND $users as row "
@@ -202,8 +215,8 @@ class DataBase:
             for chunk in chunker(events, 10000):
                 session.run(
                     "UNWIND $events as row "
-                    "MATCH (user: User {id: row.source, folder: $folder}), (machine: Machine {id: row.target, folder: $folder}) "
-                    "MERGE (user)-[rel: LogonEvent {event_type: row.event_type}]->(machine) "
+                    "MATCH (source {id: row.source, folder: $folder}), (target {id: row.target, folder: $folder}) "
+                    "MERGE (source)-[rel: LogonEvent {event_type: row.event_type}]->(target) "
                     "ON CREATE SET rel += row "
                     "ON MATCH SET rel.count = rel.count + row.count",
                     events=chunk,
@@ -214,7 +227,7 @@ class DataBase:
         with self._driver.session() as session:
             query = f"""CALL gds.labelPropagation.write({{
                     nodeQuery: 'MATCH (u {{ folder: "{folder}" }}) RETURN id(u) AS id',
-                    relationshipQuery: 'MATCH (n: User {{ folder: "{folder}" }})-[r: LogonEvent]-(m: Machine {{ folder: "{folder}" }}) RETURN id(n) AS source, id(m) AS target, type(r) as type',
+                    relationshipQuery: 'MATCH (n {{ folder: "{folder}" }})-[r: LogonEvent]-(m {{ folder: "{folder}" }}) RETURN id(n) AS source, id(m) AS target, type(r) as type',
                     writeProperty: 'algo_lpa'
                 }})
             """

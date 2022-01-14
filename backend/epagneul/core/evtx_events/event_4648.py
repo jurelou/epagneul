@@ -1,4 +1,5 @@
-from epagneul.models.events import NativeLogonEvent
+from epagneul.models.relationships import NativeLogonRelationship, RelationshipType
+
 from epagneul.models.observables import Machine, User
 
 
@@ -28,11 +29,12 @@ def parse_4648(store, event):
     machine_id = store.add_machine(machine)
 
     if user_id and machine_id:
-        store.add_logon_event(
-            NativeLogonEvent(
+        store.add_relationship(
+            NativeLogonRelationship(
                 source=user_id,
                 target=machine_id,
-                event_type=event.event_id,
+                event_type=RelationshipType.LOGON_EXPLICIT_CREDS,
+
                 timestamp=event.timestamp,
                 logon_type=logon_type,
                 status=status,

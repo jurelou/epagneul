@@ -1,6 +1,14 @@
 from typing import Optional
 
+from enum import Enum
+
 from pydantic import BaseModel, validator, root_validator
+
+class ObservableType(str, Enum):
+    GROUP = "Group"
+    MACHINE = "Machine"
+    USER = "User"
+    COMPOUND = "Compound"
 
 
 class NonEmptyValuesModel(BaseModel):
@@ -15,7 +23,8 @@ class NonEmptyValuesModel(BaseModel):
 class Observable(NonEmptyValuesModel):
     id: Optional[str]
 
-    category: str
+    rank: float = 0.0
+    category: ObservableType
 
     label: str = ""
     bg_opacity: float = 0.33
@@ -29,12 +38,31 @@ class Observable(NonEmptyValuesModel):
     border_width: int = 5
     algo_lpa: int = -1
 
+    class Config:
+        use_enum_values = True
     # algo_pagerank: float = 0.15
     # timeline: List[int] = []
     # algo_change_finder: ??
 
+class Group(Observable):
+    category = ObservableType.GROUP
+
+    sid: Optional[str]
+    name: Optional[str]
+    domain: Optional[str]
+
+    shape: str = "hexagon"
+    border_color: str = "#e7298a"
+
+
+    def finalize(self):
+        self.id = f"Group-{self.id}"
+        self.label = self.name or self.sid
+        self.tip = f"Name: {self.name}<br>SID: {self.sid}<br>Domain: {self.domain}"
+
 class Machine(Observable):
-    category: str = "machine"
+    category = ObservableType.MACHINE
+
     hostname: Optional[str]
     domain: Optional[str]
     ip: Optional[str]
@@ -44,7 +72,7 @@ class Machine(Observable):
     border_color: str = "#7570b3"
 
     def finalize(self):
-        self.id = f"{self.category}-{self.id}"
+        self.id = f"Machine-{self.id}"
         self.label = self.hostname or self.ip
         self.tip = f"Hostname: {self.hostname}<br>Domain: {self.domain}<br>Ip(s): {', '.join(self.ips)}"
 
@@ -70,7 +98,7 @@ class Machine(Observable):
         return v
 
 class User(Observable):
-    category: str = "user"
+    category = ObservableType.USER
 
     username: Optional[str]
     sid: Optional[str]
@@ -83,7 +111,7 @@ class User(Observable):
     border_color: str = "#e6ab02"
 
     def finalize(self):
-        self.id = f"{self.category}-{self.id}"
+        self.id = f"User-{self.id}"
         self.tip = f"Username: {self.username}<br>SID: {self.sid}<br>Domain: {self.domain}<br>Role: {self.role}"
         self.label = self.username
 

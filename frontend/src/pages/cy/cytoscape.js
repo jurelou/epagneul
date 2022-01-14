@@ -41,7 +41,7 @@ export function makeCytoscape(elements) {
           animationDuration: 1500,
           fit: true,
           tile: true,
-          idealEdgeLength: 80,
+          idealEdgeLength: 140,
           packComponents: false,
           nodeRepulsion: 25000
         },

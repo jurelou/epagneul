@@ -97,14 +97,16 @@ class ChangeFinder(_ChangeFinderAbstract):
         score = 0
         predict = x
         predict2 = 0
-        if len(self._ts) == self._order:  # 第一段学習
+        if len(self._ts) == self._order:
+
             score, predict = self._sdar_first.update(x, self._ts)
             self._add_one(score, self._first_scores, self._smooth)
         self._add_one(x, self._ts, self._order)
         second_target = None
-        if len(self._first_scores) == self._smooth:  # 平滑化
+        if len(self._first_scores) == self._smooth:
             second_target = self._smoothing(self._first_scores)
-        if second_target and len(self._smoothed_scores) == self._order:  # 第二段学習
+        if second_target and len(self._smoothed_scores) == self._order:
+
             score, predict2 = self._sdar_second.update(
                 second_target, self._smoothed_scores
             )
