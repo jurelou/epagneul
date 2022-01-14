@@ -10,7 +10,6 @@ class RelationshipType(str, Enum):
     SUCCESSFULL_LOGON = "Successfull logon"
     FAILED_LOGON = "Failed logon"
     
-
     TGT_AES_REQUEST = "TGT AES Request"
     TGT_DES_REQUEST = "TGT DES Request"
     TGT_RC4_REQUEST = "TGT RC4 Request"

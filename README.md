@@ -60,13 +60,13 @@ When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server
 - [x] Label propagation algorithm
 - [x] PageRank
 - [x] Add missing events IDs (sysmon)
+- [x] Proper conversion of known SIDS / security principals, ...
 - [ ] hidden markov chains
 - [ ] Display a timeline of logons / at least a summary graph
 - [ ] check out: https://github.com/ahmedkhlief/APT-Hunter
 - [ ] Import data from ELK / splunk
 - [ ] detect communities using louvain
-- [ ] Proper conversion of known SIDS / security principals, ...
-- [ ] Document evtx filtering using `3,4648,4624,4625,4672,4768,4769,4771,4776`
+- [ ] Document evtx filtering method using filter `3,4648,4624,4625,4672,4768,4769,4771,4776,4728,4732,4756`
 
 ## Known bugs
 

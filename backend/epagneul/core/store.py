@@ -1,5 +1,8 @@
 from epagneul.models.relationships import BaseRelationship
 from epagneul.models.observables import Machine, User, LocalAdminUser, DomainAdminUser, Group, ObservableType
+import pandas as pd
+
+from epagneul.core.algorithms import adetection
 
 KNOWN_ADMIN_SIDS = {
     "S-1-5-18": "System (or LocalSystem)",
@@ -144,11 +147,11 @@ class Datastore:
         def resolve_node(node, node_type):
             if node_type == ObservableType.USER and node not in users_keys:
                 for u in users:
-                    if event.target == u.sid or event.target == u.username:
+                    if node == u.sid or node == u.username:
                         return u.id
             elif node_type == ObservableType.MACHINE and node not in machines_keys:
                 for m in machines:
-                    if event.target == m.hostname or event.target in m.ips:
+                    if node== m.hostname or node in m.ips:
                         return m.id
             return node
 
@@ -157,11 +160,16 @@ class Datastore:
             event.source = resolve_node(event.source, event.source_type)
             event.target = resolve_node(event.target, event.target_type)
 
+            for ts in event.timestamps:
+                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
+
             event.source = f"{event.source_type}-{event.source}"
             event.target = f"{event.target_type}-{event.target}"
 
-            for ts in event.timestamps:
-                self.add_ml_frame([ts.strftime("%Y-%m-%d %H:%M:%S"), event.event_type, event.source])
+        for user, rank in self.get_change_finder().items():
+            if user in users_keys:
+                self.users[user].rank = rank
+
 
     def add_timestamp(self, timestamp):
         if not self.start_time:
@@ -174,18 +182,17 @@ class Datastore:
         elif self.end_time < timestamp:
             self.end_time = timestamp
 
+    """
     def get_timeline():
         count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
         count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
             "dates"
         ].transform("count")
         return count_set.drop_duplicates()
-
+    """
     def get_change_finder(self):
-        count_set = pd.DataFrame(self.ml_list, columns=["dates", "eventid", "username"])
-        count_set["count"] = count_set.groupby(["dates", "eventid", "username"])[
-            "dates"
-        ].transform("count")
+        count_set = pd.DataFrame(self.ml_list, columns=["dates", "event", "username"])
+        count_set["count"] = count_set.groupby(["dates", "event", "username"])["dates"].transform("count")
         count_set = count_set.drop_duplicates()
         tohours = int((self.end_time - self.start_time).total_seconds() / 3600)
         return adetection(count_set, list(self.users.keys()), self.start_time, tohours)

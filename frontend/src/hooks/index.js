@@ -22,6 +22,7 @@ export function useFolder(folder_id) {
 			//staleTime: 30 * 1000,
 			refetchOnWindowFocus: false,
 			refetchOnReconnect: false,
+			refetchOnMount: false
 
 		}
 	);

@@ -23,6 +23,7 @@ class NonEmptyValuesModel(BaseModel):
 class Observable(NonEmptyValuesModel):
     id: Optional[str]
 
+    rank: float = 0.0
     category: ObservableType
 
     label: str = ""

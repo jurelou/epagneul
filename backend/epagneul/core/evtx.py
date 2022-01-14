@@ -3,7 +3,6 @@ import re
 from typing import Any
 
 import numpy as np
-from epagneul.core.changefinder import ChangeFinder
 from epagneul.core.store import Datastore
 from evtx import PyEvtxParser
 from loguru import logger
@@ -50,7 +49,6 @@ supported_events = {
 USEFULL_EVENTS_STR = re.compile(
     f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
 )
-
 
 def to_lxml(record_xml):
     rep_xml = record_xml.replace(
@@ -105,68 +103,16 @@ def parse_evtx(file_data):
     return store
 
 
-def adetection(counts, users, starttime, tohours):
-    count_array = np.zeros((6, len(users), tohours + 1))
-    count_all_array = []
-    result_array = []
-    cfdetect = {}
-    for _, event in counts.iterrows():
-        column = int(
-            (
-                datetime.datetime.strptime(event["dates"], "%Y-%m-%d  %H:%M:%S")
-                - starttime
-            ).total_seconds()
-            / 3600
-        )
-        row = users.index(event["username"])
-        # count_array[row, column, 0] = count_array[row, column, 0] + count
-        if event["eventid"] == 4624:
-            count_array[0, row, column] = event["count"]
-        elif event["eventid"] == 4625:
-            count_array[1, row, column] = event["count"]
-        elif event["eventid"] == 4768:
-            count_array[2, row, column] = event["count"]
-        elif event["eventid"] == 4769:
-            count_array[3, row, column] = event["count"]
-        elif event["eventid"] == 4776:
-            count_array[4, row, column] = event["count"]
-        elif event["eventid"] == 4648:
-            count_array[5, row, column] = event["count"]
-    count_sum = np.sum(count_array, axis=0)
-    count_average = count_sum.mean(axis=0)
-    num = 0
-    for udata in count_sum:
-        cf = ChangeFinder(r=0.04, order=1, smooth=6)
-        ret = []
-        for i in count_average:
-            cf.update(i)
-
-        for i in udata:
-            score = cf.update(i)
-            ret.append(round(score[1], 2))
-        result_array.append(ret)
-
-        cfdetect[users[num]] = max(ret)
-
-        count_all_array.append(udata.tolist())
-        for var in range(0, 6):
-            con = []
-            for i in range(0, tohours + 1):
-                con.append(count_array[var, num, i])
-            count_all_array.append(con)
-        num += 1
-
-    return count_all_array, result_array, cfdetect
-
-
 if __name__ == "__main__":
-    from epagneul.api.core.neo4j import get_database
+    from epagneul.core.neo4j import get_database
 
     db = get_database()
     db.bootstrap()
     db.rm()
-    # store = parse_evtx("/data/files/")
-    # store.finalize()
+    store = parse_evtx("/data/filtered.evtx")
+    store.finalize()
+
+    print(store.users)
 
     """
     #a, b, c = store.get_change_finder()
