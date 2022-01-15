@@ -1,4 +1,4 @@
-<p align="center"><img width="100" src="https://github.com/jurelou/epagneul/blob/dmaster/images/logo-rounded.png?raw=true" alt="Vue logo"></p>
+<p align="center"><img width="100" src="https://github.com/jurelou/epagneul/blob/master/images/logo-rounded.png?raw=true" alt="Vue logo"></p>
 <h2 align="center">epagneul</h2>
 
 <div align="center">
