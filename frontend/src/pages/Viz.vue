@@ -189,7 +189,7 @@
         <q-card class="column">
           <q-card-section>
             <q-uploader
-              :url="base_url + '/folders/' + route.params.folder + '/upload'"
+              :url="api_base_url + '/folders/' + route.params.folder + '/upload'"
               multiple
               @uploaded="uploaded_files"
               @failed="failed_upload_file"
@@ -487,7 +487,7 @@ function onChangeVisualisationMode(layout_name, animate = true) {
 ///////////////////////////////////////////////////////////////
 // FILE UPLOAD
 ///////////////////////////////////////////////////////////////
-const base_url = process.env.VUE_APP_BASE_URL
+import { api_base_url } from '../config';
 
 function uploaded_files(info) {
   refetch.value()

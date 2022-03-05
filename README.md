@@ -50,8 +50,6 @@ This will install:
 - epagneul backend (port 8000)
 - neo4j (port 7474)
 
-When installing on a server, you need to modify `VUE_APP_BASE_URL=http://<server name>:8000/api` in your `docker-compose.yaml`.
-
 
 ## todos
 

@@ -1,11 +1,10 @@
 import { useQuery } from 'vue-query';
-
-const base_url = process.env.VUE_APP_BASE_URL
+import { api_base_url } from '../config';
 
 export function useFolders() {
 	const { data: folders, isLoading, refetch } = useQuery(
 		"folders",
-		() => fetch(`${base_url}/folders/`).then((r) => r.json()),
+		() => fetch(`${api_base_url}/folders/`).then((r) => r.json()),
 		{
 			staleTime: 30 * 1000,
 		}
@@ -17,7 +16,7 @@ export function useFolders() {
 export function useFolder(folder_id) {
 	const { data: folder, isLoading, refetch, isError } = useQuery(
 		["folder", folder_id],
-		() => fetch(`${base_url}/folders/${folder_id}`).then((r) => r.json()),
+		() => fetch(`${api_base_url}/folders/${folder_id}`).then((r) => r.json()),
 		{
 			//staleTime: 30 * 1000,
 			refetchOnWindowFocus: false,
