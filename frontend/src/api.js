@@ -1,4 +1,5 @@
 import { api_base_url } from './config';
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 export function deleteFolder(folder_name) {
     return fetch(`${api_base_url}/folders/${folder_name}`, {
