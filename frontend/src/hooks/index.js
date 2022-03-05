@@ -1,7 +1,7 @@
 import { useQuery } from 'vue-query';
 import { api_base_url } from '../config';
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+
 
 export function useFolders() {
 	const { data: folders, isLoading, refetch } = useQuery(
