@@ -35,7 +35,7 @@ services:
     volumes:
       - ./backend/epagneul:/opt/backend/epagneul:ro
     ports:
-      - 8000:8000
+      - 6327:8000
     depends_on:
       - neo4j
   

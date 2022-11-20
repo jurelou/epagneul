@@ -8,6 +8,7 @@ ADD . .
 
 RUN npm install -g @quasar/cli && \
     npm install && \
-    chmod +x entrypoint.sh
+    chmod +x entrypoint.sh && \
+    quasar build
 
 ENTRYPOINT ["quasar", "dev"]

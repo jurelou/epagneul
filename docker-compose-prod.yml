@@ -32,10 +32,10 @@ services:
     restart: unless-stopped
     networks:
       - backend
-    volumes:
-      - ./backend/epagneul:/opt/backend/epagneul:ro
+    # volumes:
+    #   - ./backend/epagneul:/opt/backend/epagneul:ro
     ports:
-      - 8000:8000
+      - 6327:8000
     depends_on:
       - neo4j
     entrypoint: ["uvicorn", "epagneul.api.app:app", "--host", "0.0.0.0", "--port", "8000"]
@@ -47,8 +47,8 @@ services:
     container_name: frontend
     networks:
       - backend
-    volumes:
-      - ./frontend/src:/opt/frontend/src:ro
+    # volumes:
+    #   - ./frontend/src:/opt/frontend/src:ro
     ports:
       - 8080:8080
     entrypoint: ["/opt/frontend/entrypoint.sh"]
