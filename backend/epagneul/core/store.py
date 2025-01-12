@@ -170,7 +170,6 @@ class Datastore:
             if user in users_keys:
                 self.users[user].rank = rank
 
-
     def add_timestamp(self, timestamp):
         if not self.start_time:
             self.start_time = timestamp
@@ -234,7 +233,6 @@ class Datastore:
             user.id = user.sid
         else:
             user.id = user.username
-
 
         local_admin, role = is_local_admin(user)
         if not local_admin:

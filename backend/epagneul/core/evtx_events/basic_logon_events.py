@@ -5,39 +5,38 @@ from epagneul.models.observables import Machine, User
 
 
 def _parse_basic_logons(store, event, relationship_type):
-
     user = User()
     machine = Machine()
     logon_type = 0
     status = ""
 
-    for item in event.data:
-        if not item.text:
+    # iterate over key-value pairs:
+    for name, value in event.data.items():
+        if not value:  # skip empty values
             continue
-        name = item.get("Name")
+
         if name in ("WorkstationName", "Workstation"):
-            machine.hostname = item.text
+            machine.hostname = value
         elif name == "IpAddress":
-            value = item.text.replace("::ffff:", "")
+            # remove "::ffff:" if present
+            ipaddr = value.replace("::ffff:", "")
             try:
-                ipaddress.ip_address(value)
-                machine.ip = value
-            except:
+                ipaddress.ip_address(ipaddr)
+                machine.ip = ipaddr
+            except ValueError:
+                # Not a valid IP, treat as hostname
                 machine.hostname = value
         elif name == "TargetUserName":
-            user.username = item.text
+            user.username = value
         elif name == "TargetDomainName":
-            user.domain = item.text
+            user.domain = value
         elif name in ("TargetUserSid", "TargetSid"):
-            user.sid = item.text
-        # elif name == "SubjectDomainName" :
-        #    store.add_domain(Domain(name=item.text))
+            user.sid = value
         elif name == "LogonType":
-            logon_type = item.text
+            logon_type = value
         elif name == "Status":
-            status = item.text
-        # elif name == "AuthenticationPackageName":
-        #    relationship_data["AuthenticationPackageName"] = item.text
+            status = value
+        # Add other fields if needed
 
     user_id = store.add_user(user)
     machine_id = store.add_machine(machine)
@@ -48,12 +47,12 @@ def _parse_basic_logons(store, event, relationship_type):
                 source=user_id,
                 target=machine_id,
                 event_type=relationship_type,
-
                 timestamp=event.timestamp,
                 logon_type=logon_type,
                 status=status,
             )
         )
+
 def parse_logon_successfull(store, event):
     _parse_basic_logons(store, event, RelationshipType.SUCCESSFULL_LOGON)
 

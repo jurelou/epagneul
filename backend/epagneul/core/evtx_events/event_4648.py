@@ -8,22 +8,24 @@ def parse_4648(store, event):
     machine = Machine()
     logon_type = 0
     status = ""
-    for item in event.data:
-        if not item.text:
+
+    # Iterate over key-value pairs in event.data
+    for name, value in event.data.items():
+        # skip empty or None values
+        if not value:
             continue
-        name = item.get("Name")
+
         if name == "SubjectUserSid":
-            user.sid = item.text
+            user.sid = value
         elif name == "SubjectUserName":
-            user.username = item.text
+            user.username = value
         elif name == "SubjectDomainName":
-            user.domain = item.text
+            user.domain = value
         elif name == "TargetServerName":
-            machine.hostname = item.text
-        elif name == "TargetServerName":
-            machine.hostname = item.text
+            machine.hostname = value
         elif name == "TargetDomainName":
-            machine.domain = item.text
+            machine.domain = value
+        # add other fields if needed
 
     user_id = store.add_user(user)
     machine_id = store.add_machine(machine)
@@ -34,7 +36,6 @@ def parse_4648(store, event):
                 source=user_id,
                 target=machine_id,
                 event_type=RelationshipType.LOGON_EXPLICIT_CREDS,
-
                 timestamp=event.timestamp,
                 logon_type=logon_type,
                 status=status,

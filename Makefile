@@ -3,26 +3,26 @@ venv_bin = $(venv)/bin
 python = python3.8
 
 all:
-	docker-compose -f docker-compose-prod.yml up -d
+	docker compose -f docker-compose-prod.yml up -d
 
 stop:
-	docker-compose -f docker-compose-prod.yml down
+	docker compose -f docker-compose-prod.yml down
 
 re:
-	docker-compose -f docker-compose-prod.yml up --build -d --force-recreate
+	docker compose -f docker-compose-prod.yml up --build -d --force-recreate
 
 stopdev:
-	docker-compose down
+	docker compose down
 
 redev:
-	docker-compose up --build -d --force-recreate
+	docker compose up --build -d --force-recreate
 
 dev:
-	docker-compose up -d
+	docker compose up -d
 
 release:
-	docker-compose -f docker-compose-prod.yml build
-	docker-compose -f docker-compose-prod.yml pull
+	docker compose -f docker-compose-prod.yml build
+	docker compose -f docker-compose-prod.yml pull
 	mkdir -p release
 	docker save epagneul_backend > release/backend.gz
 	docker save epagneul_frontend > release/frontend.gz

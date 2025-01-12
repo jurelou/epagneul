@@ -1,8 +1,7 @@
 import datetime
 import re
 from typing import Any
-
-import numpy as np
+import json
 from epagneul.core.store import Datastore
 from evtx import PyEvtxParser
 from loguru import logger
@@ -16,7 +15,6 @@ from epagneul.core.evtx_events.event_4648 import parse_4648
 from epagneul.core.evtx_events.event_4672 import parse_4672
 from epagneul.core.evtx_events.event_4768 import parse_4768
 from epagneul.core.evtx_events import group_events
-
 
 
 class Event(BaseModel):
@@ -42,16 +40,17 @@ supported_events = {
     4732: group_events.parse_add_group,
     4756: group_events.parse_add_group,
 
-    #5140: test,
-    #4729: test,
-    #4733: test,
-    #4757: test,
+    # 5140: test,
+    # 4729: test,
+    # 4733: test,
+    # 4757: test,
 }
 
 
 USEFULL_EVENTS_STR = re.compile(
     f'<EventID>({"|".join([str(i) for i in supported_events.keys()])})<', re.MULTILINE
 )
+
 
 def to_lxml(record_xml):
     rep_xml = record_xml.replace(
@@ -86,29 +85,112 @@ def get_event_from_xml(raw_xml_event):
     )
 
 
+def parse_evtx_jsonl(file_data):
+    """
+    Parses a .jsonl file containing EVTX data and processes it into a Datastore.
+
+    Args:
+        file_data: A file-like object containing JSONL data.
+
+    Returns:
+        Datastore: The processed datastore object.
+    """
+    logger.info(f"Parsing JSONL file: {file_data}")
+    store = Datastore()
+
+    try:
+        # Iterate over the file data
+        for line in file_data if isinstance(file_data, list) else file_data.readlines():
+            line = line.strip()  # Ensure no trailing newline or spaces
+            if not line:  # Skip empty lines
+                continue
+
+            try:
+                # Parse the JSON line
+                event_json = json.loads(line)
+
+                # Safely extract EventID
+                event_id = int(event_json.get("Event", {})
+                                        .get("System", {})
+                                        .get("EventID", 0))
+
+                # Safely extract SystemTime
+                system_time = (event_json.get("Event", {})
+                                        .get("System", {})
+                                        .get("TimeCreated", {})
+                                        .get("#attributes", {})
+                                        .get("SystemTime", None))
+                timestamp = convert_logtime(system_time)
+
+                # Extract EventData
+                event_data = event_json.get("Event", {}).get("EventData")
+
+                if event_id in supported_events:
+                    
+                    # Create the event and process it
+                    event = Event(event_id=event_id, timestamp=timestamp, data=event_data)
+                    store.add_timestamp(event.timestamp)
+                    supported_events[event_id](store, event)
+
+            except json.JSONDecodeError as json_err:
+                logger.error(f"JSON decode error in line: {line}. Error: {json_err}")
+            except Exception as e:
+                logger.error(f"Error parsing line: {line}. Error: {e}")
+
+    except Exception as e:
+        logger.critical(f"Failed to process file data. Error: {e}")
+
+    return store
+    
+    
 def parse_evtx(file_data):
-    logger.info(f"Parsing evtx file: {file_data}")
+    logger.info(f"Parsing EVTX JSON file: {file_data}")
     evtx = PyEvtxParser(file_data)
 
     store = Datastore()
 
-    for r in evtx.records():
-        data = r["data"]
-        if not re.search(USEFULL_EVENTS_STR, data):
-            continue
+    try:
+        # Process each record in JSON format
+        for record_json in evtx.records_json():
+            try:
+                # Convert the string in record_json["data"] to a Python dictionary
+                parsed_data = json.loads(record_json["data"])
+                # Safely parse the JSON data
+                event_id = int(
+                    parsed_data.get("Event", {})
+                    .get("System", {})
+                    .get("EventID", 0)
+                )
+                # Safely extract SystemTime
+                system_time = (
+                    parsed_data.get("Event", {})
+                                .get("System", {})
+                                .get("TimeCreated", {})
+                                .get("#attributes", {})
+                                .get("SystemTime", None)
+                )
+                timestamp = convert_logtime(system_time)
+                # Extract EventData
+                event_data = parsed_data.get("Event", {}).get("EventData")
+                # Process supported events
+                if event_id in supported_events:
+                    event = Event(event_id=event_id, timestamp=timestamp, data=event_data)
+                    store.add_timestamp(event.timestamp)
+                    supported_events[event_id](store, event)
 
-        event = get_event_from_xml(data)
-        store.add_timestamp(event.timestamp)
+            except json.JSONDecodeError as json_err:
+                logger.error(f"JSON decode error in record: {parsed_data}. Error: {json_err}")
+            except Exception as e:
+                logger.error(f"Error processing record: {parsed_data}. Error: {e}")
 
-        if event.event_id in supported_events:
-            supported_events[event.event_id](store, event)
+    except Exception as e:
+        logger.critical(f"Failed to process EVTX JSON data. Error: {e}")
 
     return store
 
 
 if __name__ == "__main__":
     from epagneul.core.neo4j import get_database
-
 
     db = get_database()
     db.bootstrap()
@@ -117,7 +199,6 @@ if __name__ == "__main__":
     store.finalize()
 
     print(store.users)
-
 
     """
     #a, b, c = store.get_change_finder()
