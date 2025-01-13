@@ -13,12 +13,12 @@ logger = logging.getLogger(__name__)
 
 def upload_folder_or_file(input_path: str, folder_name: str, console_url: str, console_port: int):
     """
-    Uploads a folder or a single file (EVTX or JSONL) to Epagneul backend.
+    Uploads a folder or a single file (EVTX or JSONL) to Epagneul.
 
     Args:
         input_path (str): Path to the folder or file to upload.
-        folder_name (str): Name of the folder in Epagneul backend.
-        console_url (str): Base URL of Epagneul backend.
+        folder_name (str): Name of the folder to create.
+        console_url (str): Base URL of Epagneul.
         console_port (int): Port of Epagneul backend.
 
     Returns:
@@ -117,7 +117,7 @@ def upload_folder_or_file(input_path: str, folder_name: str, console_url: str, c
 def main():
     # Define arguments using argparse
     parser = argparse.ArgumentParser(
-        description="Utility to upload a folder or a file containing EVTX and JSONL files to Epagneul."
+        description="Utility to upload a folder or a file containing EVTX and parsed EVTX (JSONL) files to Epagneul."
     )
     parser.add_argument(
         "--input-path",
@@ -129,13 +129,13 @@ def main():
         "--folder-name",
         type=str,
         required=True,
-        help="Name of the folder on Epagneul backend.",
+        help="Name of the folder to create.",
     )
     parser.add_argument(
         "--console-url",
         type=str,
         required=True,
-        help="Base URL of Epagneul backend (e.g., http://127.0.0.1).",
+        help="Base URL of Epagneul (e.g., http://127.0.0.1).",
     )
     parser.add_argument(
         "--console-port",
