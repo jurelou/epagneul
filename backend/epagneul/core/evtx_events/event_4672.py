@@ -2,16 +2,20 @@ from epagneul.models.observables import DomainAdminUser
 
 
 def parse_4672(store, event):
-    """EventID 4672: Special privileges assigned to new logon."""
+    """EventID 4672: Special privileges assigned to new logon (JSON version)."""
     user = DomainAdminUser()
-    for item in event.data:
-        if not item.text:
+    
+    # Iterate over key-value pairs in event.data
+    for name, value in event.data.items():
+        if not value:  # skip empty or None values
             continue
-        name = item.get("Name")
+        
         if name == "SubjectUserName":
-            user.username = item.text
+            user.username = value
         elif name == "SubjectUserSid":
-            user.sid = item.text
+            user.sid = value
         elif name == "SubjectDomainName":
-            user.domain = item.text
+            user.domain = value
+
+    # Add the user to the store
     store.add_user(user)

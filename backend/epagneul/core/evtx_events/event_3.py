@@ -3,37 +3,38 @@ from epagneul.models.relationships import SysmonLogonRelationship, RelationshipT
 
 
 def parse_3(store, event):
-
     user = User()
     machine = Machine()
 
     initiated = None
     image = None
-    procotol = None
+    protocol = None
     destination_port = None
     source_port = None
 
-    for item in event.data:
-        if not item.text:
+    # Iterate over key-value pairs in event.data
+    for name, value in event.data.items():
+        # skip empty or None values
+        if not value:
             continue
 
-        name = item.get("Name")
         if name == "User":
-            user.username = item.text
+            user.username = value
         elif name == "DestinationIp":
-            machine.ip = item.text
+            machine.ip = value
         elif name == "DestinationHostname":
-            machine.hostname = item.text
+            machine.hostname = value
         elif name == "Image":
-            image = item.text
+            image = value
         elif name == "Protocol":
-            procotol = item.text
+            protocol = value
         elif name == "Initiated":
-            initiated = item.text
+            initiated = value
         elif name == "SourcePort":
-            source_port = item.text
+            source_port = value
         elif name == "DestinationPort":
-            destination_port = item.text
+            destination_port = value
+        # Add other fields if needed
 
     user_id = store.add_user(user)
     machine_id = store.add_machine(machine)
@@ -47,7 +48,7 @@ def parse_3(store, event):
                 timestamp=event.timestamp,
                 initiated=initiated,
                 image=image,
-                procotol=procotol,
+                procotol=protocol,  # or 'protocol' if you prefer consistent naming
                 destination_port=destination_port,
                 source_port=source_port,
             )

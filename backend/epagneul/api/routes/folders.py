@@ -1,7 +1,7 @@
 import traceback
 from datetime import datetime
 
-from epagneul.core.evtx import parse_evtx
+from epagneul.core.evtx import parse_evtx, parse_evtx_jsonl
 from epagneul.core.neo4j import get_database
 from epagneul.models.files import File
 from epagneul.models.folders import Folder
@@ -56,7 +56,12 @@ def create_folder(folder_name: str, db=Depends(get_database)):
 
 def analyze_file(db, folder: str, file_data, filename):
     print(f"Parsing file {filename}")
-    store = parse_evtx(file_data)
+    
+    if filename.endswith(".jsonl"):
+        store = parse_evtx_jsonl(file_data)
+    else:
+        store = parse_evtx(file_data)
+    
     print(f"Done parsing file {filename}")
     store.finalize()
     print(f"Done finalizing file {filename}")

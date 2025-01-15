@@ -50,6 +50,32 @@ This will install:
 - epagneul backend (port 8000)
 - neo4j (port 7474)
 
+## Utility Tool: Upload Files or Folders to Epagneul
+
+The project includes a Python utility to upload EVTX or JSONL files to Epagneul for analysis.
+
+### Features
+
+- Automatically creates folders in the Epagneul backend.
+- Validates and uploads EVTX or JSONL files.
+- Supports single file or folder uploads.
+
+### Usage
+
+Run the following command to use the tool:
+
+```bash
+python upload.py --input-path <path_to_file_or_folder> --folder-name <folder_name> --console-url <console_url> [--console-port <port>]
+```
+
+#### Arguments
+
+- `--input-path`: Path to the file or folder containing EVTX or JSONL files.
+- `--folder-name`: Name of the folder to create in Epagneul.
+- `--console-url`: Base URL of the Epagneul backend (e.g., `http://127.0.0.1`).
+- `--console-port`: Port of the Epagneul backend (default: `6327`).
+
+
 
 ## todos
 

@@ -5,38 +5,45 @@ from epagneul.models.observables import Group, User
 
 
 def parse_add_group(store, event):
+    """Adaptation for adding users to groups via JSON data."""
     user = User()
     subject = User()
     group = Group()
 
     privs = None
 
-    for item in event.data:
-        if not item.text:
+    # Iterate over key-value pairs in event.data
+    for name, value in event.data.items():
+        if not value:  # skip empty or None values
             continue
-        name = item.get("Name")
-        if name == "TargetUserName":
-            group.name = item.text
-        elif name == "TargetDomainName":
-            group.domain = item.text
-        elif name == "TargetSid":
-            group.sid = item.text
-        elif name == "MemberSid":
-            user.sid = item.text
-        elif name == "SubjectUserSid":
-            subject.sid = item.text
-        elif name == "SubjectUserName":
-            subject.username = item.text
-        elif name == "SubjectDomainName":
-            subject.domain = item.text
-        elif name == "PrivilegeList":
-            privs = item.text
 
+        if name == "TargetUserName":
+            group.name = value
+        elif name == "TargetDomainName":
+            group.domain = value
+        elif name == "TargetSid":
+            group.sid = value
+        elif name == "MemberSid":
+            user.sid = value
+        elif name == "SubjectUserSid":
+            subject.sid = value
+        elif name == "SubjectUserName":
+            subject.username = value
+        elif name == "SubjectDomainName":
+            subject.domain = value
+        elif name == "PrivilegeList":
+            privs = value
+
+    # Add the subject (the one performing the action)
     store.add_user(subject)
 
+    # Add the user being added to the group
     user_id = store.add_user(user)
+
+    # Add the group
     group_id = store.add_group(group)
 
+    # Create a relationship if both user and group are valid
     if user_id and group_id:
         store.add_relationship(
             GroupRelationship(
@@ -47,4 +54,3 @@ def parse_add_group(store, event):
                 privileges=privs
             )
         )
-
